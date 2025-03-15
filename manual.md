@@ -9,7 +9,7 @@ venv\Scripts\activate.bat
 
 on Linux
 ```bash
-venv/bin/activate
+source venv/bin/activate
 ```
 
 아나콘다 환경은 사용하지 마시오
