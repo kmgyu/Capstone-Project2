@@ -90,8 +90,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "djongo",
+        # "NAME": BASE_DIR / "db.sqlite3",
+        "NAME" : "capstone"
+        'CLIENT': {
+            'host': 'mongodb://localhost:27017',  # MongoDB 서버 주소
+            'username': 'myuser',  # MongoDB 사용자 이름 (선택 사항)
+            'password': 'mypassword',  # MongoDB 비밀번호 (선택 사항)
+            'authSource': 'admin',  # 인증할 데이터베이스 (MongoDB 기본값: admin)
+        }
     }
 }
 
