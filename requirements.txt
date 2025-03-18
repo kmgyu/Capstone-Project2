@@ -1,7 +1,7 @@
 django
 djangorestframework
 djangorestframework-simplejwt
-djongo
-pymongo==3.12
 django-environ
 pytz
+django-utils-six
+mongoengine
