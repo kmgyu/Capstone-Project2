@@ -46,3 +46,13 @@ conda deactivate
 ```bash
 python manage.py runserver
 ```
+
+## mongoDB test Snippet
+```python
+from pymongo import MongoClient
+
+client = MongoClient("mongodb://capstone_test:ScE1234**@127.0.0.1:27017/", authSource="admin")
+db = client["admin"]
+print(db.list_collection_names())  # 데이터베이스 목록 출력
+
+```

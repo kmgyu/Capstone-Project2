@@ -105,9 +105,10 @@ DATABASES = {
         "NAME" : env("DB_NAME"),
         'CLIENT': {
             'host': env("DB_HOST"),  # MongoDB 서버 주소
-            'username': env("DB_NAME"),  # MongoDB 사용자 이름 (선택 사항)
+            'username': env("DB_USER"),  # MongoDB 사용자 이름 (선택 사항)
             'password': env("DB_PASSWORD"),  # MongoDB 비밀번호 (선택 사항)
             'authSource': 'admin',  # 인증할 데이터베이스 (MongoDB 기본값: admin)
+            # 'authMechanism': 'SCRAM-SHA-1'
         }
     }
 }
