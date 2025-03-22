@@ -109,7 +109,9 @@ DATABASES = {
             'password': env("DB_PASSWORD"),  # MongoDB 비밀번호 (선택 사항)
             'authSource': 'admin',  # 인증할 데이터베이스 (MongoDB 기본값: admin)
             # 'authMechanism': 'SCRAM-SHA-1'
-        }
+        },
+        'ENFORCE_SCHEMA': False,  # Djongo에서 스키마 강제 적용 방지
+        # "USE_SQL_TRANSACTIONS": False,  # ✅ SQL 트랜잭션 비활성화
     }
 }
 
