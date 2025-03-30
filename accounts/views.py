@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .serializers import RegisterSerializer
 from .models import UserProfile
+from django.contrib.auth.hashers import check_password
 
 class LoginView(APIView):
     def post(self, request):
