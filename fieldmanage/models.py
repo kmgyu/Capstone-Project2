@@ -11,5 +11,8 @@ class Field(models.Model):
 
     geometry = jsonfield.JSONField()  # GeoJSON 저장용
 
+    class Meta:
+        db_table = "field_info"
+        
     def __str__(self):
         return self.field_name

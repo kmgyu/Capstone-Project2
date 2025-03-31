@@ -1,9 +1,9 @@
 from django.db import models
-from fieldmanage.models import FieldInfo  # field_info 테이블과 연결되는 모델이 여기에 정의
+from fieldmanage.models import Field  # field_info 테이블과 연결되는 모델이 여기에 정의
 
 class FieldTodo(models.Model):
     task_id = models.AutoField(primary_key=True)
-    field = models.ForeignKey(FieldInfo, on_delete=models.CASCADE, db_column='field_id')
+    field = models.ForeignKey(Field, on_delete=models.CASCADE, db_column='field_id')
     task_name = models.CharField(max_length=255)
     task_content = models.TextField(blank=True, null=True)
     cycle = models.IntegerField(blank=True, null=True)
