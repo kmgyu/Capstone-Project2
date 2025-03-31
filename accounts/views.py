@@ -1,77 +1,113 @@
+import jwt
 from rest_framework.views import APIView
-from rest_framework.response import Response
+from .serializers import *
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.response import Response
 from django.contrib.auth import authenticate
-from .serializers import RegisterSerializer
-from .models import UserProfile
-from django.contrib.auth.hashers import check_password
+from django.shortcuts import render, get_object_or_404
+from watti_backend.settings import SECRET_KEY
 
-class LoginView(APIView):
+
+class RegisterAPIView(APIView):
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        try:
-            user = UserProfile.objects.get(username=username)
-        except UserProfile.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if check_password(password, user.password):
-            # ❗ JWT 발급은 동작하지 않을 수 있음 (user가 AbstractBaseUser 아님)
-            return Response({'message': 'Login successful'})
-        else:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            refresh_token = request.data.get('refresh')
-            token = RefreshToken(refresh_token)
-            token.blacklist()  # 토큰을 블랙리스트에 추가
-            return Response({'message': 'Logged out successfully'}, status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class RegisterView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-
+        serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
-        
+            user = serializer.save()
+            
+            # jwt 토큰 접근
+            token = TokenObtainPairSerializer.get_token(user)
+            refresh_token = str(token)
+            access_token = str(token.access_token)
+            res = Response(
+                {
+                    "user": serializer.data,
+                    "message": "register successs",
+                    "token": {
+                        "access": access_token,
+                        "refresh": refresh_token,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+            
+            # jwt 토큰 => 쿠키에 저장
+            res.set_cookie("access", access_token, httponly=True)
+            res.set_cookie("refresh", refresh_token, httponly=True)
+            
+            return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        # username = request.data.get('username')
-        # password = request.data.get('password')
-        # email = request.data.get('email', '')
+    
+class AuthAPIView(APIView):
+    # 유저 정보 확인
+    def get(self, request):
+        try:
+            # access token을 decode 해서 유저 id 추출 => 유저 식별
+            access = request.COOKIES['access']
+            payload = jwt.decode(access, SECRET_KEY, algorithms=['HS256'])
+            pk = payload.get('user_id')
+            user = get_object_or_404(User, pk=pk)
+            serializer = UserSerializer(instance=user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # if not username or not password:
-        #     return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # try:
-        #     UserProfile.objects.get(username=username)
-        #     return Response({'error': 'Username already exists'}, status=400)
-        # except Exception as e:
-        #     print(e)
-        #     pass  # 등록 진행
-        
-        # # if UserProfile.objects.filter(username=username).exists():
-        # #     return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # user = UserProfile.objects.create_user(username=username, password=password, email=email)
-        # user.save()
+        except(jwt.exceptions.ExpiredSignatureError):
+            # 토큰 만료 시 토큰 갱신
+            data = {'refresh': request.COOKIES.get('refresh', None)}
+            serializer = TokenRefreshSerializer(data=data)
+            if serializer.is_valid(raise_exception=True):
+                access = serializer.data.get('access', None)
+                refresh = serializer.data.get('refresh', None)
+                payload = jwt.decode(access, SECRET_KEY, algorithms=['HS256'])
+                pk = payload.get('user_id')
+                user = get_object_or_404(User, pk=pk)
+                serializer = UserSerializer(instance=user)
+                res = Response(serializer.data, status=status.HTTP_200_OK)
+                res.set_cookie('access', access)
+                res.set_cookie('refresh', refresh)
+                return res
+            raise jwt.exceptions.InvalidTokenError
 
-        # refresh = RefreshToken.for_user(user)
+        except(jwt.exceptions.InvalidTokenError):
+            # 사용 불가능한 토큰일 때
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        # return Response({
-        #     'message': 'User registered successfully',
-        #     'refresh': str(refresh),
-        #     'access': str(refresh.access_token),
-        # }, status=status.HTTP_201_CREATED)
+    # 로그인
+    def post(self, request):
+    	# 유저 인증
+        user = authenticate(
+            email=request.data.get("email"), password=request.data.get("password")
+        )
+        # 이미 회원가입 된 유저일 때
+        if user is not None:
+            serializer = UserSerializer(user)
+            # jwt 토큰 접근
+            token = TokenObtainPairSerializer.get_token(user)
+            refresh_token = str(token)
+            access_token = str(token.access_token)
+            res = Response(
+                {
+                    "user": serializer.data,
+                    "message": "login success",
+                    "token": {
+                        "access": access_token,
+                        "refresh": refresh_token,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+            # jwt 토큰 => 쿠키에 저장
+            res.set_cookie("access", access_token, httponly=True)
+            res.set_cookie("refresh", refresh_token, httponly=True)
+            return res
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    # 로그아웃
+    def delete(self, request):
+        # 쿠키에 저장된 토큰 삭제 => 로그아웃 처리
+        response = Response({
+            "message": "Logout success"
+            }, status=status.HTTP_202_ACCEPTED)
+        response.delete_cookie("access")
+        response.delete_cookie("refresh")
+        return response
