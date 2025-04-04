@@ -3,6 +3,9 @@ from django.utils.timezone import now
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 
 class User(AbstractBaseUser):
+    '''
+    legacy custom model
+    '''
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
