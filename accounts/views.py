@@ -6,7 +6,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.shortcuts import render, get_object_or_404
-from watti_backend.settings import SECRET_KEY
+# from watti_backend.settings import SECRET_KEY
+from config.settings import SECRET_KEY
 
 
 class RegisterAPIView(APIView):
@@ -75,7 +76,7 @@ class AuthAPIView(APIView):
     def post(self, request):
     	# 유저 인증
         user = authenticate(
-            email=request.data.get("email"), password=request.data.get("password")
+            username=request.data.get("username"), password=request.data.get("password")
         )
         # 이미 회원가입 된 유저일 때
         if user is not None:
