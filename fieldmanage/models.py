@@ -9,6 +9,9 @@ class Field(models.Model):
     field_area = models.FloatField()
     crop_name = models.CharField(max_length=100)
     farm_startdate = models.DateField(default=now)
+    description = models.CharField(max_length=100)
+    owner = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
+    # owner = models.ForeignKey("accounts.User", verbose_name=_(""), on_delete=models.CASCADE)
     
     geometry = jsonfield.JSONField()  # GeoJSON 저장용
 
