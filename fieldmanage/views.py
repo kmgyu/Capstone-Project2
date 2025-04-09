@@ -5,6 +5,19 @@ from rest_framework import status
 from .models import Field
 from .serializers import FieldSerializer
 
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+
+class FieldTestView(APIView):
+    # authenticate check
+    # authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        fields = Field.objects.all()
+        serializer = FieldSerializer(fields, many=True)
+        return Response(serializer.data)
+        
+
 # ✅ 모든 필드 조회 & 생성
 class FieldListView(APIView):
     def get(self, request):
