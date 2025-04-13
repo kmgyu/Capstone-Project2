@@ -30,7 +30,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+
+#SECRET_KEY = env('SECRET_KEY')
+
+SECRET_KEY = env('SECRET_KEY',default='django-insecure-44des16f%3n65fb5ml9w^q35pxjqq@x1&u+z@)^*t17l)m-fkk')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
@@ -161,6 +164,10 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ✅ 변경된 이미지 저장 경로
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'multipart_picture')
+
 
 # JWT token settings
 from datetime import timedelta
@@ -175,3 +182,5 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+
+
