@@ -1,7 +1,9 @@
 # models.py
-
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
+from datetime import timedelta
 
 # 헬퍼 클래스
 class UserManager(BaseUserManager):
@@ -50,3 +52,19 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # 사용자의 username field는 email으로 설정 (이메일로 로그인)
     USERNAME_FIELD = 'email'
+    
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
+
+    def is_expired(self):
+        return self.created_at < timezone.now() - timedelta(hours=24)
+
+    def mark_used(self):
+        self.used = True
+        self.save()
+
+    def __str__(self):
+        return f"Token for {self.user.email} - Used: {self.used}"
