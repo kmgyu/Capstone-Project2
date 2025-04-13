@@ -128,7 +128,7 @@ class ForgotPasswordView(APIView):
                 return Response({"success": False, "message": "요청이 너무 많습니다. 1시간 후 다시 시도하세요."}, status=429)
 
             token_obj = PasswordResetToken.objects.create(user=user)
-            reset_url = f"https://http://127.0.0.1:8000/reset-password/{token_obj.token}"
+            reset_url = f"http://orion.mokpo.ac.kr:8483/reset-password/{token_obj.token}"
             html_message = render_to_string("email/reset_password.html", {
                 "user": user,
                 "token": token_obj.token,
