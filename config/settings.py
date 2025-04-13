@@ -190,4 +190,5 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 CORS_ORIGIN_WHITELIST = (
     "http://localhost:3000",
     "http://0.0.0.0:3000",
+    "http://orion.mokpo.ac.kr:8487",
 )
