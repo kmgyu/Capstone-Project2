@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import FieldListView, FieldDetailView
+from .views import FieldListAPIView, FieldDetailAPIView
 
-# ~field/
+# ~/field
 urlpatterns = [
-    path('list/', FieldListView.as_view(), name='list-field'),
-    path('detail/', FieldDetailView.as_view(), name='detail-field'),
+    path('fields', FieldListAPIView.as_view(), name='field-list'),
+    path('fields/<int:pk>', FieldDetailAPIView.as_view(), name='field-detail'),
 ]
