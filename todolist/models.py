@@ -7,7 +7,7 @@ User = get_user_model()
 
 class FieldTodo(models.Model):
     task_id = models.AutoField(primary_key=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos') 
+    owner = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name='todos')
     field = models.ForeignKey(Field, on_delete=models.CASCADE, db_column='field_id')  # 어떤 노지의 할 일인지
     task_name = models.CharField(max_length=255)
     task_content = models.TextField(blank=True, null=True)
