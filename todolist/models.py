@@ -14,7 +14,7 @@ class FieldTodo(models.Model):
     cycle = models.IntegerField(blank=True, null=True)
     start_date = models.DateTimeField(auto_now_add=True)
     period = models.IntegerField(blank=True, null=True)
-    is_tmp = models.BooleanField(default=False)
+    is_pest = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'field_todo'
