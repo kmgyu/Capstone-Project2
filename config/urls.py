@@ -16,6 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+#이미지 업로드 위치치
+from django.conf import settings
+from django.conf.urls.static import static
+
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -24,7 +28,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
+    path("todo/", include("todolist.urls")),
+    path("upload/", include("multipart_picture.urls")),  # ← 여기에 연결
     path("todo/", include("todolist.urls")), ]
     #멀티파트 이미지 업로드
-    # path("upload/", include("multipart_picture.urls")),
-# ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!
+    path("upload/", include("multipart_picture.urls")),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!
