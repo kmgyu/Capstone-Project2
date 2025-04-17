@@ -24,7 +24,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
-    path("todo/", include("todolist.urls")),
+    path("todo/", include("todolist.urls")), ]
     #멀티파트 이미지 업로드
-    path("upload/", include("multipart_picture.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!
+    # path("upload/", include("multipart_picture.urls")),
+# ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!
