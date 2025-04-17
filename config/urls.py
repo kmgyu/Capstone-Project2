@@ -21,14 +21,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
     path("todo/", include("todolist.urls")),
     path("upload/", include("multipart_picture.urls")),  # ← 여기에 연결
-]
-
-# ✅ 개발 환경에서 업로드된 이미지 보여주기 (media/)
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("todo/", include("todolist.urls")), ]
+    #멀티파트 이미지 업로드
+    path("upload/", include("multipart_picture.urls")),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!

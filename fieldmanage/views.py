@@ -7,33 +7,30 @@ from .serializers import FieldSerializer
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-
-class FieldTestView(APIView):
-    # authenticate check
-    # authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        fields = Field.objects.all()
-        serializer = FieldSerializer(fields, many=True)
-        return Response(serializer.data)
         
 
 # ✅ 모든 필드 조회 & 생성
-class FieldListView(APIView):
+class FieldListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
-        fields = Field.objects.all()
+        # 사용자의 필드만 조회
+        user = request.user
+        fields = Field.objects.filter(owner=user)
         serializer = FieldSerializer(fields, many=True)
         return Response(serializer.data)
 
     def post(self, request):
+        # print(request.user)
         serializer = FieldSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # print(serializer.data)
+            serializer.save(owner=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ✅ 단일 필드 조회, 수정, 삭제
-class FieldDetailView(APIView):
+class FieldDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get_object(self, pk):
         return get_object_or_404(Field, pk=pk)
 
