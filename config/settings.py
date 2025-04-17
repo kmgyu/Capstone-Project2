@@ -37,6 +37,7 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ['*'] # all
 
+APPEND_SLASH = True
 
 # Application definition
 
@@ -45,6 +46,8 @@ CUSTOM_APPS = [
     'fieldmanage',
     'todolist',
     'accounts',
+    #멀티파트
+    'multipart_picture',
 ]
 
 THIRD_PARTY_APPS = [
@@ -192,3 +195,7 @@ CORS_ORIGIN_WHITELIST = (
     "http://0.0.0.0:3000",
     "http://orion.mokpo.ac.kr:8487",
 )
+
+# 이미지 저장 경로 지정
+MEDIA_URL = '/media/'
+MEDIA_ROOT = '/home/Capstone-Project2/storage'
