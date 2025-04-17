@@ -46,6 +46,10 @@ conda deactivate
 ```bash
 python manage.py runserver
 ```
+배포 시
+```bash
+python manage.py runserver 0.0.0.0:3000
+```
 
 ## mongoDB test Snippet
 ```python

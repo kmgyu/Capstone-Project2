@@ -6,7 +6,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.shortcuts import render, get_object_or_404
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.utils import timezone
 from config.settings import SECRET_KEY
+from .models import User, PasswordResetToken
+from .serializers import ForgotPasswordSerializer, PasswordResetSerializer
+
 
 class AuthAPIView(APIView):
     # 유저 정보 확인
@@ -105,3 +112,65 @@ class RegisterAPIView(APIView):
             
             return res
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ForgotPasswordView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+
+            # 최근 1시간 이내 요청 횟수 제한
+            recent_requests = PasswordResetToken.objects.filter(
+                user=user, created_at__gte=timezone.now() - timezone.timedelta(hours=1)
+            )
+            if recent_requests.count() >= 3:
+                return Response({"success": False, "message": "요청이 너무 많습니다. 1시간 후 다시 시도하세요."}, status=429)
+
+            token_obj = PasswordResetToken.objects.create(user=user)
+            reset_url = f"http://orion.mokpo.ac.kr:8483/reset-password/{token_obj.token}"
+            html_message = render_to_string("email/reset_password.html", {
+                "user": user,
+                "token": token_obj.token,
+            })
+
+            send_mail(
+                subject="비밀번호 재설정 안내",
+                message="비밀번호 재설정 링크를 확인해주세요.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+            )
+
+            return Response({"success": True, "message": "비밀번호 재설정 이메일이 발송되었습니다."})
+        return Response({"success": False, "message": serializer.errors}, status=400)
+
+class ResetPasswordVerifyView(APIView):
+    def get(self, request, token):
+        try:
+            token_obj = PasswordResetToken.objects.get(token=token)
+            if token_obj.used:
+                return Response({"valid": False, "message": "이미 사용된 토큰입니다."})
+            if token_obj.is_expired():
+                return Response({"valid": False, "message": "토큰이 만료되었습니다."})
+            return Response({"valid": True, "message": "유효한 토큰입니다."})
+        except PasswordResetToken.DoesNotExist:
+            return Response({"valid": False, "message": "존재하지 않는 토큰입니다."})
+
+class ResetPasswordView(APIView):
+    def post(self, request, token):
+        try:
+            token_obj = PasswordResetToken.objects.get(token=token)
+            if token_obj.used or token_obj.is_expired():
+                return Response({"success": False, "message": "유효하지 않거나 만료된 토큰입니다."})
+        except PasswordResetToken.DoesNotExist:
+            return Response({"success": False, "message": "존재하지 않는 토큰입니다."})
+
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            user = token_obj.user
+            user.set_password(serializer.validated_data['password'])
+            user.save()
+            token_obj.mark_used()
+            return Response({"success": True, "message": "비밀번호가 재설정되었습니다."})
+        return Response({"success": False, "message": serializer.errors})
