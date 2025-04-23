@@ -31,23 +31,24 @@ class FieldListAPIView(APIView):
 # ✅ 단일 필드 조회, 수정, 삭제
 class FieldDetailAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    def get_object(self, pk):
-        return get_object_or_404(Field, pk=pk)
+
+    def get_object(self, pk, user):
+        return get_object_or_404(Field, pk=pk, owner=user)
 
     def get(self, request, pk):
-        field = self.get_object(pk)
+        field = self.get_object(pk, request.user)
         serializer = FieldSerializer(field)
         return Response(serializer.data)
 
     def put(self, request, pk):
-        field = self.get_object(pk)
-        serializer = FieldSerializer(field, data=request.data)
+        field = self.get_object(pk, request.user)
+        serializer = FieldSerializer(field, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk):
-        field = self.get_object(pk)
+        field = self.get_object(pk, request.user)
         field.delete()
         return Response({'message': 'Field deleted'}, status=status.HTTP_204_NO_CONTENT)
