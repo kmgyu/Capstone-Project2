@@ -29,8 +29,8 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
     path("todo/", include("todolist.urls")),
-    path("upload/", include("multipart_picture.urls")),  # ← 여기에 연결
-    path("todo/", include("todolist.urls")), ]
-    #멀티파트 이미지 업로드
-    path("upload/", include("multipart_picture.urls")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # ✅ 이 위치는 맞음!
+    path("upload/", include("multipart_picture.urls")),  # ✅ 이 줄 들여쓰기 맞춰주세요
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
