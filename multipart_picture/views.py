@@ -2,8 +2,10 @@
 
 from django.http import JsonResponse
 from .forms import FieldPicForm, CropPicForm, PestPicForm
+from django.views.decorators.csrf import csrf_exempt
 
-def upload_field_pic(request):
+@csrf_exempt
+def upload_field(request):
     if request.method == 'POST':
         form = FieldPicForm(request.POST, request.FILES)
         if form.is_valid():
@@ -20,7 +22,7 @@ def upload_field_pic(request):
         else:
             return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
-def upload_crop_pic(request):
+def upload_crop(request):
     if request.method == 'POST':
         form = CropPicForm(request.POST, request.FILES)
         if form.is_valid():
@@ -37,7 +39,7 @@ def upload_crop_pic(request):
         else:
             return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
-def upload_pest_pic(request):
+def upload_pest(request):
     if request.method == 'POST':
         form = PestPicForm(request.POST, request.FILES)
         if form.is_valid():
