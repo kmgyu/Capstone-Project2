@@ -4,6 +4,7 @@ from .views import (
     FieldTodoDetailAPIView,
     FieldTodoUserListAPIView
 )
+from .tasks import create_task_from_gpt
 
 urlpatterns = [
     # 사용자 기준 전체 할 일 목록 조회
@@ -14,4 +15,7 @@ urlpatterns = [
 
     # 특정 할 일 단건 조회/수정/삭제
     path('todos/task/<int:task_id>/', FieldTodoDetailAPIView.as_view(), name='todo-detail'),
+    
+    # gpt에게 todo list 뽑아 오는 기능
+    path("api/tasks/from-gpt/", create_task_from_gpt),
 ]
