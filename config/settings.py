@@ -171,7 +171,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ✅ 변경된 이미지 저장 경로
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'multipart_picture')
+MEDIA_ROOT = '/home/Capstone-Project2/storage'
 
 
 # JWT token settings
@@ -206,3 +206,6 @@ CORS_ORIGIN_WHITELIST = (
 # 이미지 저장 경로 지정
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/home/Capstone-Project2/storage'
+
+# GPT API 키
+OPENAI_API_KEY = env("OPENAI_API_KEY")
