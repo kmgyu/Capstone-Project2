@@ -8,15 +8,34 @@ from .serializers import FieldTodoSerializer
 from rest_framework.permissions import IsAuthenticated
 
 
-# 사용자 기준 전체 Todo 목록 조회
-class FieldTodoUserListAPIView(APIView):
+# 사용자 기준 Todo 목록 조회
+class FieldTodoListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        todos = FieldTodo.objects.filter(owner=request.user)
+    def get(self, request, field_id=None):
+        user = request.user
+        start = request.query_params.get('start')
+        end = request.query_params.get('end')
+
+        if not (start and end):
+            return Response({'error': 'start와 end 날짜가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            start_date = parse_datetime(start)
+            end_date = parse_datetime(end)
+        except ValueError:
+            return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 기본 조건: 본인 소유의 할 일
+        todos = FieldTodo.objects.filter(owner=user, start_date__range=(start_date, end_date))
+
+        # 특정 필드 ID가 있으면 추가 필터
+        if field_id:
+            field = get_object_or_404(Field, pk=field_id, owner=user)
+            todos = todos.filter(field=field)
+
         serializer = FieldTodoSerializer(todos, many=True)
         return Response(serializer.data)
-
 
 # 특정 필드 기준 Todo 목록 조회 & 생성
 class FieldTodoListCreateAPIView(APIView):
