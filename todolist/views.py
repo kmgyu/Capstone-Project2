@@ -8,7 +8,7 @@ from .serializers import FieldTodoSerializer
 from rest_framework.permissions import IsAuthenticated
 
 
-# 사용자 기준 Todo 목록 조회
+# 사용자 기준 Todo 목록 조회 및 생성
 class FieldTodoListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -36,18 +36,10 @@ class FieldTodoListAPIView(APIView):
 
         serializer = FieldTodoSerializer(todos, many=True)
         return Response(serializer.data)
-
-# 특정 필드 기준 Todo 목록 조회 & 생성
-class FieldTodoListCreateAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, field_id):
-        field = get_object_or_404(Field, pk=field_id, owner=request.user)
-        todos = FieldTodo.objects.filter(field=field)
-        serializer = FieldTodoSerializer(todos, many=True)
-        return Response(serializer.data)
-
+    
     def post(self, request, field_id):
+        user = request.user
+        # 필드 목록 조회
         try:
             field = Field.objects.get(pk=field_id)
         except Field.DoesNotExist:
@@ -58,7 +50,7 @@ class FieldTodoListCreateAPIView(APIView):
 
         serializer = FieldTodoSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(owner=request.user, field=field)
+            serializer.save(owner=user, field=field)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
