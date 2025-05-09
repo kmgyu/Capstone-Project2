@@ -1,5 +1,6 @@
 from django import forms
-from .models import FieldPic, CropPic, PestPic
+#from .models import FieldPic, CropPic, PestPic
+from .models import FieldPic
 
 class FieldPicForm(forms.ModelForm):
     class Meta:
