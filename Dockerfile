@@ -6,11 +6,12 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # 3. 시스템 패키지 설치
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    netcat \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+# && apt-get install -y \
+#     build-essential \
+#     libpq-dev \
+#     netcat \
+#     && rm -rf /var/lib/apt/lists/*
 
 # 4. 작업 디렉토리 생성
 WORKDIR /app
