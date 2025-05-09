@@ -77,36 +77,36 @@ def upload_field(request):
         else:
             return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
-def upload_crop(request):
-    if request.method == 'POST':
-        form = CropPicForm(request.POST, request.FILES)
-        if form.is_valid():
-            instance = form.save()
-            return JsonResponse({
-                'status': 'success',
-                'message': 'CropPic uploaded successfully',
-                'data': {
-                    'id': instance.crop_pic_id,
-                    'pic_name': instance.pic_name,
-                    'pic_path': instance.pic_path.url
-                }
-            })
-        else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+# def upload_crop(request):
+#     if request.method == 'POST':
+#         form = CropPicForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             instance = form.save()
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'message': 'CropPic uploaded successfully',
+#                 'data': {
+#                     'id': instance.crop_pic_id,
+#                     'pic_name': instance.pic_name,
+#                     'pic_path': instance.pic_path.url
+#                 }
+#             })
+#         else:
+#             return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
-def upload_pest(request):
-    if request.method == 'POST':
-        form = PestPicForm(request.POST, request.FILES)
-        if form.is_valid():
-            instance = form.save()
-            return JsonResponse({
-                'status': 'success',
-                'message': 'PestPic uploaded successfully',
-                'data': {
-                    'id': instance.pest_pic_id,
-                    'pic_name': instance.pic_name,
-                    'pic_path': instance.pic_path.url
-                }
-            })
-        else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+# def upload_pest(request):
+#     if request.method == 'POST':
+#         form = PestPicForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             instance = form.save()
+#             return JsonResponse({
+#                 'status': 'success',
+#                 'message': 'PestPic uploaded successfully',
+#                 'data': {
+#                     'id': instance.pest_pic_id,
+#                     'pic_name': instance.pic_name,
+#                     'pic_path': instance.pic_path.url
+#                 }
+#             })
+#         else:
+#             return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
