@@ -1,120 +1,225 @@
-# todo/tasks.py
-# from .models import Todo
-# from datetime import date
-
-# def auto_add_todo():
-#     Todo.objects.create(
-#         title="자동 생성 Todo",
-#         description="이건 시스템이 자동으로 생성했어요.",
-#         due_date=date.today()
-#     )
-
-
 import openai
 import json
 import re
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from fieldmanage.models import Field
-from .models import FieldTodo
-from django.contrib.auth import get_user_model
+from datetime import datetime, timedelta
 from django.conf import settings
+from django.utils.timezone import localtime
+from celery import shared_task
+from fieldmanage.models import Field, FieldTodo
+from django.contrib.auth import get_user_model
+from konlpy.tag import Okt
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import calendar
 
-User = get_user_model()
 openai.api_key = settings.OPENAI_API_KEY
+User = get_user_model()
+okt = Okt()
 
-# 병해충 키워드 리스트
 PEST_KEYWORDS = ["진딧물", "응애", "방제", "병해충", "살충제", "살균제", "해충", "전염병", "병해", "충해"]
 
-# 기간 관련 패턴 (예: 2일, 1주, 3개월 등)
-PERIOD_PATTERN = r"(\d+)(일|주|개월|달|시간)"
+# -------- 공통 유틸 함수 -------- #
+def is_duplicate_by_cosine(new_task_name, existing_task_names, threshold=0.75):
+    if not existing_task_names:
+        return False
+    vectorizer = TfidfVectorizer(tokenizer=okt.morphs)
+    vectors = vectorizer.fit_transform([new_task_name] + existing_task_names)
+    similarity = cosine_similarity(vectors[0:1], vectors[1:])
+    return any(score >= threshold for score in similarity[0])
 
-# 주기 관련 표현
-CYCLE_KEYWORDS = {
-    "매일": 1,
-    "매주": 7,
-    "격주": 14,
-    "매달": 30,
-    "한 달마다": 30
-}
+def save_task(user, field, task_data, date):
+    FieldTodo.objects.create(
+        owner=user,
+        field=field,
+        task_name=task_data["task_name"][:50],
+        task_content=task_data["task_content"],
+        period=task_data.get("period"),
+        cycle=task_data.get("cycle"),
+        is_pest=any(k in task_data["task_content"] for k in PEST_KEYWORDS),
+        start_date=date
+    )
 
+# -------- 1. 월간 키워드 생성 -------- #
+def generate_month_keywords(field):
+    today = datetime.today().date()
+    days_since_start = (today - field.farm_startdate).days
+    if days_since_start < 30:
+        stage = "파종 직후"
+    elif days_since_start < 60:
+        stage = "초기 생육기"
+    elif days_since_start < 90:
+        stage = "성장기"
+    else:
+        stage = "후기 생육기"
 
-def extract_period_days(text):
-    match = re.search(PERIOD_PATTERN, text)
-    if not match:
-        return None
-    num = int(match.group(1))
-    unit = match.group(2)
-    if unit == "일":
-        return num
-    elif unit == "주":
-        return num * 7
-    elif unit in ["개월", "달"]:
-        return num * 30
-    elif unit == "시간":
-        return max(1, round(num / 24))  # 최소 1일
-    return None
+    prompt = f"""
+작물: {field.crop_name}
+월: {today.month}월
+생육 단계: {stage}
+지역: {field.field_address}
+위 조건을 바탕으로 이번 달 주요 농작업 키워드 5~7개를 JSON 배열로 추천해줘.
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "너는 농업 키워드 전문가야."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=150
+    )
+    try:
+        return json.loads(response['choices'][0]['message']['content'])
+    except:
+        return []
 
+# -------- 2. 2주치 할 일 생성 -------- #
+def generate_biweekly_tasks(user, field, start_date, keywords):
+    # TODO: 아래 pest_info, weather_info는 실제 병해충 탐지 및 날씨 API로부터 받아올 예정입니다.
+    # 현재는 더미 데이터를 사용합니다.
+    pest_info = "진딧물 관찰됨 (더미 데이터)"
+    weather_info = "흐리고 습함 (더미 데이터)"
+    last_week = start_date - timedelta(days=7)
+    prev_tasks = FieldTodo.objects.filter(field=field, start_date__range=(last_week, start_date - timedelta(days=1)))
+    task_names = [t.task_name for t in prev_tasks]
+    summary = ", ".join(task_names) if task_names else "없음"
 
-def extract_cycle_days(text):
-    for keyword, days in CYCLE_KEYWORDS.items():
-        if keyword in text:
-            return days
-    return None
+    prompt = f"""
+작물: {field.crop_name}
+위치: {field.field_address}
+지난 주 작업: {summary}
+키워드: {', '.join(keywords)}
+다음 2주 동안 해야 할 일들을 날짜별로 JSON 형식으로 추천해줘.
+형식:
+{{
+  "YYYY-MM-DD": [
+    {{"task_name": "작업명", "task_content": "내용", "period": 2, "cycle": 7}},
+    ...
+  ]
+}}
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "너는 농업 일정 전문가야."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=1500
+    )
+    try:
+        parsed = json.loads(response['choices'][0]['message']['content'])
+    except:
+        return
 
+    for date_str, task_list in parsed.items():
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        existing_tasks = FieldTodo.objects.filter(field=field, start_date=target_date)
+        existing_names = [t.task_name for t in existing_tasks]
 
-@csrf_exempt
-def create_task_from_gpt(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        message = data.get("message")
-        owner_id = data.get("owner_id")
-        field_id = data.get("field_id")
+        for task_data in task_list:
+            if is_duplicate_by_cosine(task_data["task_name"], existing_names):
+                existing_tasks.filter(task_name=task_data["task_name"]).delete()
+            save_task(user, field, task_data, target_date)
 
-        if not (message and owner_id and field_id):
-            return JsonResponse({"error": "message, owner_id, field_id는 필수입니다."}, status=400)
+# -------- 3. 하루치 할 일 생성 -------- #
+def generate_daily_tasks_for_field(user, field, pest_info, weather_info):
+    # TODO: 현재 pest_info, weather_info는 더미 데이터입니다. 실제 연동 필요.
+    today = datetime.today().date()
+    prompt = f"""
+작물: {field.crop_name}
+날짜: {today}
+위치: {field.field_address}
+병해충 정보: {pest_info}
+날씨 정보: {weather_info}
+오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
+형식:
+[
+  {{"task_name": "작업명", "task_content": "내용", "period": 1, "cycle": 1}},
+  ...
+]
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "너는 병해충 대응 전문가야."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.2,
+        max_tokens=600
+    )
+    try:
+        parsed = json.loads(response['choices'][0]['message']['content'])
+    except:
+        return
 
-        # GPT 호출
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "너는 농업 전문가야. 입력에 따라 구체적인 농작업을 설명해줘."},
-                {"role": "user", "content": message}
-            ],
-            max_tokens = 300
-        )
+    existing_tasks = FieldTodo.objects.filter(field=field, start_date=today)
+    existing_names = [t.task_name for t in existing_tasks]
 
-        gpt_content = response['choices'][0]['message']['content']
+    for task_data in parsed:
+        if task_data["task_name"] in existing_names:
+            existing_tasks.filter(task_name=task_data["task_name"]).delete()
+        save_task(user, field, task_data, today)
 
-        # 분석
-        is_pest = any(keyword in gpt_content for keyword in PEST_KEYWORDS)
-        period = extract_period_days(gpt_content)
-        cycle = extract_cycle_days(gpt_content)
+# -------- 4. 월간 할 일 생성 -------- #
+def generate_monthly_tasks(user, field, keywords):
+    today = datetime.today().date()
+    year, month = today.year, today.month
 
-        # DB 저장
+    prompt = f"""
+작물: {field.crop_name}
+위치: {field.field_address}
+키워드: {', '.join(keywords)}
+이번 {month}월에 해야 할 일을 날짜별로 JSON 형식으로 출력해줘.
+형식:
+{{
+  "1": [
+    {{"task_name": "작업명", "task_content": "내용", "period": 3, "cycle": 7}},
+    ...
+  ],
+  ...
+}}
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "너는 월간 농업 계획 전문가야."},
+                  {"role": "user", "content": prompt}],
+        temperature=0.3,
+        max_tokens=1500
+    )
+    try:
+        parsed = json.loads(response['choices'][0]['message']['content'])
+    except:
+        return
+
+    for day_str, task_list in parsed.items():
         try:
-            owner = User.objects.get(id=owner_id)
-            field = Field.objects.get(id=field_id)
-        except (User.DoesNotExist, Field.DoesNotExist):
-            return JsonResponse({"error": "owner_id 또는 field_id가 존재하지 않습니다."}, status=404)
+            day = int(re.sub(r"\D", "", day_str))
+            target_date = today.replace(day=day)
+        except:
+            continue
+        for task_data in task_list:
+            save_task(user, field, task_data, target_date)
 
-        task = FieldTodo.objects.create(
-            owner=owner,
-            field=field,
-            task_name=message[:100],
-            task_content=gpt_content,
-            is_pest=is_pest,
-            period=period,
-            cycle=cycle
-        )
+# -------- Celery 스케줄 Task -------- #
+@shared_task
+def run_generate_daily_tasks():
+    today = localtime().date()
+    users = User.objects.all()
+    for user in users:
+        fields = Field.objects.filter(owner=user)
+        for field in fields:
+            generate_daily_tasks_for_field(user, field, pest_info="진딧물 관찰됨 (더미)", weather_info="흐리고 습함 (더미)")
 
-        return JsonResponse({
-            "task_id": task.task_id,
-            "task_name": task.task_name,
-            "task_content": task.task_content,
-            "is_pest": task.is_pest,
-            "period": task.period,
-            "cycle": task.cycle
-        })
+@shared_task
+def run_generate_monthly_keywords_and_tasks():
+    users = User.objects.all()
+    for user in users:
+        fields = Field.objects.filter(owner=user)
+        for field in fields:
+            keywords = generate_month_keywords(field)
+            generate_monthly_tasks(user, field, keywords)
 
-    return JsonResponse({"error": "POST 요청만 지원합니다."}, status=405)
+@shared_task
+def run_generate_biweekly_tasks():
+    today = localtime().date()
+    users = User.objects.all()
+    for user in users:
+        fields = Field.objects.filter(owner=user)
+        for field in fields:
+            keywords = generate_month_keywords(field)
+            generate_biweekly_tasks(user, field, today, keywords)
