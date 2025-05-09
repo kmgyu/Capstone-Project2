@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import (
-    FieldTodoListCreateAPIView,
     FieldTodoDetailAPIView,
     FieldTodoListAPIView
 )
