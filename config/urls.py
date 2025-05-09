@@ -29,7 +29,9 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
     path("todo/", include("todolist.urls")),
-    path("upload/", include("multipart_picture.urls")),  # ✅ 이 줄 들여쓰기 맞춰주세요
+    path("upload/", include("multipart_picture.urls")),  
+    path('weather/', include('weather.urls')),  
+
 ]
 
 if settings.DEBUG:
