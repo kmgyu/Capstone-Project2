@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/django,python,venv
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,python,venv
 
+### Storages ###
+storage/
+
 ### Django ###
 *.log
 *.pot
