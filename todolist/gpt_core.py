@@ -195,31 +195,3 @@ def generate_monthly_tasks(user, field, keywords):
         for task_data in task_list:
             save_task(user, field, task_data, target_date)
 
-# -------- Celery 스케줄 Task -------- #
-@shared_task
-def run_generate_daily_tasks():
-    today = localtime().date()
-    users = User.objects.all()
-    for user in users:
-        fields = Field.objects.filter(owner=user)
-        for field in fields:
-            generate_daily_tasks_for_field(user, field, pest_info="진딧물 관찰됨 (더미)", weather_info="흐리고 습함 (더미)")
-
-@shared_task
-def run_generate_monthly_keywords_and_tasks():
-    users = User.objects.all()
-    for user in users:
-        fields = Field.objects.filter(owner=user)
-        for field in fields:
-            keywords = generate_month_keywords(field)
-            generate_monthly_tasks(user, field, keywords)
-
-@shared_task
-def run_generate_biweekly_tasks():
-    today = localtime().date()
-    users = User.objects.all()
-    for user in users:
-        fields = Field.objects.filter(owner=user)
-        for field in fields:
-            keywords = generate_month_keywords(field)
-            generate_biweekly_tasks(user, field, today, keywords)
