@@ -5,3 +5,8 @@ django-environ==0.12.0
 pytz==2025.1
 sqlparse==0.5.3
 jsonfield==3.1.0
+django-cors-headers==4.3.1
+openai==0.28.1
+celery==5.3.6
+konlpy==0.6.0
+scikit-learn==1.4.2
