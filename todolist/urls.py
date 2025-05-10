@@ -1,10 +1,11 @@
 from django.urls import path
 from .views import (
-    FieldTodoListCreateAPIView,
     FieldTodoDetailAPIView,
     FieldTodoListAPIView
 )
-from .tasks import create_task_from_gpt
+from todolist import gpt_views
+
+# from .tasks import create_task_from_gpt
 
 urlpatterns = [
     # 사용자 기준 start~end date 할 일 목록 조회 및 생성
@@ -18,4 +19,8 @@ urlpatterns = [
     # gpt에게 todo list 뽑아 오는 기능
     # test 코드는 주석처리하고 명시할 것
     # path("api/tasks/from-gpt/", create_task_from_gpt),
+    path("gpt/keywords/", gpt_views.generate_keywords),
+    path("gpt/daily/", gpt_views.manual_generate_daily),
+    path("gpt/biweekly/", gpt_views.manual_generate_biweekly),
+    path("gpt/monthly/", gpt_views.manual_generate_monthly),
 ]
