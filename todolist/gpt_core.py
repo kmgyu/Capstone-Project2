@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.timezone import localtime
 from celery import shared_task
-from fieldmanage.models import Field, FieldTodo
+from .models import Field, FieldTodo
 from django.contrib.auth import get_user_model
 from konlpy.tag import Okt
 from sklearn.feature_extraction.text import TfidfVectorizer
