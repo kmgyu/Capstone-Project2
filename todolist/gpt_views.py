@@ -39,7 +39,7 @@ def manual_generate_biweekly(request):
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
     keywords = generate_month_keywords(field)
-    generate_biweekly_tasks(user, field, datetime.today().date(), keywords)
+    generate_biweekly_tasks(user, field, datetime.today().date())
     return JsonResponse({"status": "biweekly generated"})
 
 
