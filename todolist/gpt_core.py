@@ -12,6 +12,9 @@ from konlpy.tag import Okt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from todolist.utils import create_task_progress_entries
+
+
 openai.api_key = settings.OPENAI_API_KEY
 User = get_user_model()
 okt = Okt()
@@ -52,7 +55,7 @@ def save_task(user, field, task_data, start_date):
         print(f"[Invalid period/cycle]: {task_data} => {e}")
         return
 
-    FieldTodo.objects.create(
+    task = FieldTodo.objects.create(
         owner=user,
         field=field,
         task_name=task_data["task_name"][:50],
@@ -62,7 +65,7 @@ def save_task(user, field, task_data, start_date):
         is_pest=any(k in task_data["task_content"] for k in PEST_KEYWORDS),
         start_date=start_date
     )
-
+    create_task_progress_entries(task)
 
 
 # -------- 1. 월간 키워드 생성 및 저장 -------- #
