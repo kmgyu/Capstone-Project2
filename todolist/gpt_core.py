@@ -29,8 +29,6 @@ def is_duplicate_by_cosine(new_task_name, existing_task_names, threshold=0.75):
     return any(score >= threshold for score in similarity[0])
 
 def save_task(user, field, task_data, start_date):
-    print(">>> 받은 start_date:", start_date)
-
     # 문자열이면 datetime으로 파싱
     if isinstance(start_date, str):
         try:
@@ -53,8 +51,6 @@ def save_task(user, field, task_data, start_date):
     except Exception as e:
         print(f"[Invalid period/cycle]: {task_data} => {e}")
         return
-
-    print(">>> 최종 저장될 start_date:", start_date)
 
     FieldTodo.objects.create(
         owner=user,
@@ -139,7 +135,7 @@ def generate_biweekly_tasks(user, field, base_date):
 오늘이 1일이라면 무조건 15일 이내에 작업 시작일이 있어야함.
 각 작업은 아래 형식을 따르고, 반드시 `start_date` 필드를 포함해야 해.
 **period와 cycle은 정수로만 표시해야 해!** (예: 0, 1, 7, 14)
-period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임. 절대로 cycle이 period보다 높을 수 없음음)
 작업은 작업 시작일 기준으로 순서대로 만들어야해
 설명 없이 JSON만 출력해야 해.
 
@@ -192,11 +188,13 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info):
 날씨 정보: {weather_info}
 오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
 각 작업은 아래 형식을 따르고, 반드시 start_date 필드를 포함해야 해.
-**period와 cycle은 반드시 정수로 표현해줘.**
-
+**period와 cycle은 반드시 정수로 표현해줘.**(예: 0, 1, 7, 14)
+period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+작업은 작업 시작일 기준으로 순서대로 만들어야해
+설명 없이 JSON만 출력해야 해.
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": 3, "cycle": 1, "start_date": "2025-05-11"}},
+  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}}
   ...
 ]
 설명 없이 JSON만 출력해.
@@ -239,13 +237,17 @@ def generate_monthly_tasks(user, field):
 위치: {field.field_address}
 키워드: {', '.join(keywords)}
 
-이번 달에 해야 할 농작업들을 날짜별로 JSON 배열 형식으로 추천해줘.
+이번 달에 해야 할 농작업들을 하루 단위로로 JSON 배열 형식으로 추천해줘.(하루마다 무조건 있지않아도되고 핵심 작업만 생성해줘줘)
 각 작업은 반드시 start_date를 포함해야 하며, 날짜는 YYYY-MM-DD 형식으로 해줘.
-**period와 cycle은 반드시 정수로 표현해야 해.**
+오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
+**period와 cycle은 반드시 정수로 표현해줘.**(예: 0, 1, 7, 14)
+period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+작업은 작업 시작일 기준으로 순서대로 만들어야해
+설명 없이 JSON만 출력해야 해.
 
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": 14, "cycle": 7, "start_date": "2025-05-12"}},
+  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}},
   ...
 ]
 설명 없이 JSON만 출력해.
