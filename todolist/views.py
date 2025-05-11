@@ -1,3 +1,8 @@
+import calendar
+from django.utils.timezone import make_aware
+from datetime import datetime
+
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,10 +11,42 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 
-from .models import FieldTodo, Field
-from .serializers import FieldTodoSerializer
+from .models import FieldTodo, Field, TaskProgress
+from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
+from .utils import create_task_progress_entries
 
+# 한달 할 일 조회
+class MonthlyFieldTodoAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, field_id):
+        user = request.user
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+
+        if not (year and month):
+            return Response({'error': 'year와 month는 필수입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            year = int(year)
+            month = int(month)
+            start_date = make_aware(datetime(year, month, 1))
+            _, last_day = calendar.monthrange(year, month)
+            end_date = make_aware(datetime(year, month, last_day, 23, 59, 59))
+        except Exception:
+            return Response({'error': 'year 또는 month 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        field = get_object_or_404(Field, pk=field_id, owner=user)
+        todos = FieldTodo.objects.filter(
+            owner=user,
+            field=field,
+            start_date__range=(start_date, end_date)
+        )
+
+        serializer = FieldTodoSerializer(todos, many=True)
+        return Response(serializer.data)
+    
+    
 # 사용자 기준 Todo 목록 조회 및 생성
 class FieldTodoListAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -18,36 +55,17 @@ class FieldTodoListAPIView(APIView):
         user = request.user
         start = request.query_params.get('start')
         end = request.query_params.get('end')
-        mode = request.query_params.get('mode')  # daily, biweekly, monthly
 
-        # start는 필수
-        if not start:
-            return Response({'error': 'start 날짜가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not (start and end):
+            return Response({'error': 'start와 end 날짜가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             start_date = parse_datetime(start)
-            if not start_date:
+            end_date = parse_datetime(end)
+            if not (start_date and end_date):
                 raise ValueError
         except ValueError:
-            return Response({'error': 'start 날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # end가 없을 경우 mode에 따라 자동 계산
-        if not end:
-            if mode == "daily":
-                end_date = start_date + timedelta(days=1)
-            elif mode == "biweekly":
-                end_date = start_date + timedelta(days=14)
-            elif mode == "monthly":
-                end_date = start_date + timedelta(days=30)
-            else:
-                return Response({'error': 'mode가 올바르지 않거나 end가 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            try:
-                end_date = parse_datetime(end)
-                if not end_date:
-                    raise ValueError
-            except ValueError:
-                return Response({'error': 'end 날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
         todos = FieldTodo.objects.filter(
             owner=user,
@@ -74,7 +92,11 @@ class FieldTodoListAPIView(APIView):
 
         serializer = FieldTodoSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(owner=user, field=field)
+            task = serializer.save(owner=user, field=field)
+
+            # ✅ 진행도 자동 생성
+            create_task_progress_entries(task)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -111,3 +133,39 @@ class FieldTodoDetailAPIView(APIView):
         todo = self.get_object(task_id, request.user)
         todo.delete()
         return Response({"detail": "delete success."},status=status.HTTP_204_NO_CONTENT)
+    
+    
+class TaskProgressUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, task_id):
+        user = request.user
+
+        # 소유자 검증
+        task = get_object_or_404(FieldTodo, pk=task_id)
+        if task.owner != user:
+            return Response({"detail": "권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
+
+        progresses = request.data.get('progresses')
+        if not progresses or not isinstance(progresses, list):
+            return Response({"error": "progresses는 리스트 형태여야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        for item in progresses:
+            serializer = TaskProgressUpdateSerializer(data=item)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            date = serializer.validated_data['date']
+            status_value = serializer.validated_data['status']
+
+            progress, created = TaskProgress.objects.get_or_create(
+                task_id=task,
+                date=date,
+                defaults={'status': status_value}
+            )
+
+            if not created:
+                progress.status = status_value
+                progress.save()
+
+        return Response({"detail": "진행도 업데이트 완료."}, status=status.HTTP_200_OK)
