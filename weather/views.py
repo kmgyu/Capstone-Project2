@@ -27,10 +27,10 @@ def send_weather_response_for_user(request):
         return Response({"error": f"{region} 지역의 오늘 날씨 정보가 없습니다."}, status=404)
 
     return Response({
-        "region": region,
-        "date": str(weather.date),
-        "weather": weather.weather,
+        #"region": region,
+        #"date": str(weather.date),
+        "description": weather.weather,
         "temperature": weather.temperature,
-        "precipitation": weather.precipitation,
+        #"precipitation": weather.precipitation,
     })
 

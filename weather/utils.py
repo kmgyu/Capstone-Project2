@@ -1,8 +1,8 @@
 import math
 
 def convert_to_grid(lat, lon):
-    RE = 6371.00877
-    GRID = 5.0
+    RE = 6371.00877  # 지구 반경(km)
+    GRID = 5.0       # 격자 간격(km)
     SLAT1 = 30.0
     SLAT2 = 60.0
     OLON = 126.0
@@ -26,10 +26,9 @@ def convert_to_grid(lat, lon):
     ra = math.pow(math.tan(math.pi * 0.25 + lat * DEGRAD * 0.5), sn)
     ra = re * sf / ra
     theta = lon * DEGRAD - olon
-    if theta > math.pi:
-        theta -= 2.0 * math.pi
-    if theta < -math.pi:
-        theta += 2.0 * math.pi
+
+    if theta > math.pi: theta -= 2.0 * math.pi
+    if theta < -math.pi: theta += 2.0 * math.pi
     theta *= sn
 
     x = int(ra * math.sin(theta) + XO + 0.5)
@@ -38,4 +37,3 @@ def convert_to_grid(lat, lon):
 
 def get_region_name_from_address(address: str) -> str:
     return address.split()[0]
-
