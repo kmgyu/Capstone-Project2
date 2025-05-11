@@ -1,7 +1,9 @@
 from django.urls import path
 from .views import (
     FieldTodoDetailAPIView,
-    FieldTodoListAPIView
+    FieldTodoListAPIView,
+    TaskProgressUpdateAPIView,
+    MonthlyFieldTodoAPIView
 )
 from todolist import gpt_views
 
@@ -12,9 +14,15 @@ urlpatterns = [
     # field_id 존재 시, field_id 또한 필터링 옵션으로 들어감
     path('todos/list/', FieldTodoListAPIView.as_view(), name='todo-list'),
     path('todos/<int:field_id>/list/', FieldTodoListAPIView.as_view(), name='todo-list-by-field'),
+    
+    # 한달 할 일 조회
+    path('todo/monthly/<int:field_id>/', MonthlyFieldTodoAPIView.as_view()),
 
     # 특정 할 일 한 건 조회/수정/삭제
     path('todos/task/<int:task_id>/', FieldTodoDetailAPIView.as_view(), name='todo-detail'),
+    
+    # 진행도 업데이트
+    path('todo/progress/<int:task_id>/', TaskProgressUpdateAPIView.as_view()),
     
     # gpt에게 todo list 뽑아 오는 기능
     # test 코드는 주석처리하고 명시할 것
