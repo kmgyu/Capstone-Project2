@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, time
 from django.conf import settings
 from django.utils.timezone import  make_aware, is_naive
 from celery import shared_task
-from .models import Field, FieldTodo, MonthlyKeyword
+from .models import FieldTodo
+from fieldmanage.models import MonthlyKeyword
 from django.contrib.auth import get_user_model
 from konlpy.tag import Okt
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,6 +17,7 @@ User = get_user_model()
 okt = Okt()
 
 PEST_KEYWORDS = ["진딧물", "응애", "방제", "병해충", "살충제", "살균제", "해충", "전염병", "병해", "충해"]
+GPT = "gpt-4"
 
 # -------- 공통 유틸 함수 -------- #
 def is_duplicate_by_cosine(new_task_name, existing_task_names, threshold=0.75):
@@ -27,21 +29,45 @@ def is_duplicate_by_cosine(new_task_name, existing_task_names, threshold=0.75):
     return any(score >= threshold for score in similarity[0])
 
 def save_task(user, field, task_data, start_date):
-    if isinstance(start_date, datetime) and is_naive(start_date):
-        start_date = make_aware(start_date)
+    print(">>> 받은 start_date:", start_date)
+
+    # 문자열이면 datetime으로 파싱
+    if isinstance(start_date, str):
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        except Exception as e:
+            print(f"[Invalid date string in save_task]: {start_date} => {e}")
+            return
+
+    # date 객체면 datetime으로 변환
     elif isinstance(start_date, datetime) is False:
-        start_date = make_aware(datetime.combine(start_date, time.min))
+        start_date = datetime.combine(start_date, time.min)
+
+    # 시간대가 없는 datetime이면 timezone aware로 변환
+    if is_naive(start_date):
+        start_date = make_aware(start_date)
+
+    try:
+        period = int(re.sub(r"[^\d]", "", str(task_data.get("period", 1))) or "1")
+        cycle = int(re.sub(r"[^\d]", "", str(task_data.get("cycle", 0))) or "0")
+    except Exception as e:
+        print(f"[Invalid period/cycle]: {task_data} => {e}")
+        return
+
+    print(">>> 최종 저장될 start_date:", start_date)
 
     FieldTodo.objects.create(
         owner=user,
         field=field,
         task_name=task_data["task_name"][:50],
         task_content=task_data["task_content"],
-        period=task_data.get("period"),
-        cycle=task_data.get("cycle"),
+        period=period,
+        cycle=cycle,
         is_pest=any(k in task_data["task_content"] for k in PEST_KEYWORDS),
         start_date=start_date
     )
+
+
 
 # -------- 1. 월간 키워드 생성 및 저장 -------- #
 def generate_month_keywords(field):
@@ -53,7 +79,7 @@ def generate_month_keywords(field):
 위 조건을 바탕으로 이번 달 주요 농작업 키워드 3~5개를 JSON 배열로 추천해줘.
 """
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model=GPT,
         messages=[{"role": "system", "content": "너는 농업 키워드 전문가야."},
                   {"role": "user", "content": prompt}],
         temperature=0.3,
@@ -63,87 +89,121 @@ def generate_month_keywords(field):
         keywords = json.loads(response['choices'][0]['message']['content'])
         # DB 저장
         for kw in keywords:
-            MonthlyKeyword.objects.create(
-                field=field,
+            MonthlyKeyword.objects.update_or_create(
+                field_id=field,
+                year=today.year,
                 month=today.month,
-                keyword=kw if isinstance(kw, str) else kw.get("keyword", "")
-            )
+                defaults={"keywords": keywords}
+        )
         return keywords
     except Exception as e:
         print(f"[Keyword Parsing Error] {e}")
         return []
 
 # -------- 2. 2주치 할 일 생성 -------- #
-def generate_biweekly_tasks(user, field, start_date):
+def generate_biweekly_tasks(user, field, base_date):
     pest_info = "진딧물 관찰됨 (더미 데이터)"
     weather_info = "흐리고 습함 (더미 데이터)"
-    last_week = start_date - timedelta(days=7)
-    prev_tasks = FieldTodo.objects.filter(field=field, start_date__range=(last_week, start_date - timedelta(days=1)))
+    last_week = base_date - timedelta(days=7)
+
+    prev_tasks = FieldTodo.objects.filter(
+        field=field,
+        start_date__range=(last_week, base_date - timedelta(days=1))
+    )
     task_names = [t.task_name for t in prev_tasks]
     summary = ", ".join(task_names) if task_names else "없음"
 
-    keywords_qs = MonthlyKeyword.objects.filter(field_id=field.field_id, month=start_date.month)
-    keywords = [k.keyword for k in keywords_qs]
+    keywords_qs = MonthlyKeyword.objects.filter(
+        field_id=field.field_id,
+        month=base_date.month,
+        year=base_date.year
+    )
+    keywords = []
+    for k in keywords_qs:
+        if isinstance(k.keywords, list):
+            for kw in k.keywords:
+                if isinstance(kw, dict) and 'keyword' in kw:
+                    keywords.append(kw['keyword'])
+                elif isinstance(kw, str):
+                    keywords.append(kw)
 
     prompt = f"""
+오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 위치: {field.field_address}
 지난 주 작업: {summary}
+기후: {weather_info}
 키워드: {', '.join(keywords)}
-다음 2주 동안 해야 할 일들을 날짜별로 JSON 형식으로 추천해줘. (하루 최대 각 3개)
-period = 기간, cycle = 주기
+
+오늘 날짜를 기준으로 향후 14일 간(작업 시작일 기준) 해야 할 농작업들을 하루 단위로 JSON 배열 형식으로 추천해줘.(최대 하루에 2개, 무조건 하루마다 있어야하는건 아님.)
+오늘이 1일이라면 무조건 15일 이내에 작업 시작일이 있어야함.
+각 작업은 아래 형식을 따르고, 반드시 `start_date` 필드를 포함해야 해.
+**period와 cycle은 정수로만 표시해야 해!** (예: 0, 1, 7, 14)
+period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+작업은 작업 시작일 기준으로 순서대로 만들어야해
+설명 없이 JSON만 출력해야 해.
+
 형식:
-{{
-  "YYYY-MM-DD": [
-    {{"task_name": "작업명", "task_content": "내용", "period": 14, "cycle": 7}},
-    ...
-  ]
-}}
-무조건 이 형식에 맞게 만들어줘야해.
+[
+  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}},
+  ...
+]
+그리고 토큰은 2000이내로 해야돼.
 """
+
     response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "system", "content": "너는 농업 일정 전문가야."},
-                  {"role": "user", "content": prompt}],
+        model=GPT,
+        messages=[
+            {"role": "system", "content": "너는 농업 일정 전문가야."},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.3,
-        max_tokens=1500
+        max_tokens=2000
     )
+
     try:
         parsed = json.loads(response['choices'][0]['message']['content'])
     except Exception as e:
         print(f"[Biweekly Parsing Error] {e}")
         return
 
-    for date_str, task_list in parsed.items():
-        target_date = make_aware(datetime.strptime(date_str, "%Y-%m-%d"))
-        existing_tasks = FieldTodo.objects.filter(field=field, start_date=target_date)
-        existing_names = [t.task_name for t in existing_tasks]
+    for task_data in parsed:
+        start_date_str = task_data.get("start_date")
+        if not start_date_str:
+            print(f"[Missing start_date]: {task_data}")
+            continue
 
-        for task_data in task_list:
-            if is_duplicate_by_cosine(task_data["task_name"], existing_names):
-                existing_tasks.filter(task_name=task_data["task_name"]).delete()
-            save_task(user, field, task_data, target_date)
+        # ⬇️ 파싱 대신 문자열을 그대로 넘기고 save_task에서 처리
+        try:
+            save_task(user, field, task_data, start_date_str)
+        except Exception as e:
+            print(f"[Save Error]: {e}")
+
+
 
 # -------- 3. 하루치 할 일 생성 -------- #
 def generate_daily_tasks_for_field(user, field, pest_info, weather_info):
-    today = make_aware(datetime.combine(datetime.today().date(), time.min))
+    today = datetime.today().date()
     prompt = f"""
+오늘은 {today.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
-날짜: {today.date()}
 위치: {field.field_address}
 병해충 정보: {pest_info}
 날씨 정보: {weather_info}
 오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
-period = 기간, cycle = 주기
+각 작업은 아래 형식을 따르고, 반드시 start_date 필드를 포함해야 해.
+**period와 cycle은 반드시 정수로 표현해줘.**
+
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": 3, "cycle": 1}},
+  {{"task_name": "작업명", "task_content": "내용", "period": 3, "cycle": 1, "start_date": "2025-05-11"}},
   ...
 ]
-무조건 이 형식에 맞게 만들어줘야해.
+설명 없이 JSON만 출력해.
 """
+
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model=GPT,
         messages=[{"role": "system", "content": "너는 병해충 대응 전문가야."},
                   {"role": "user", "content": prompt}],
         temperature=0.2,
@@ -155,13 +215,17 @@ period = 기간, cycle = 주기
         print(f"[Daily Parsing Error] {e}")
         return
 
-    existing_tasks = FieldTodo.objects.filter(field=field, start_date=today)
-    existing_names = [t.task_name for t in existing_tasks]
-
     for task_data in parsed:
-        if is_duplicate_by_cosine(task_data["task_name"], existing_names):
-            existing_tasks.filter(task_name=task_data["task_name"]).delete()
-        save_task(user, field, task_data, today)
+        start_date_str = task_data.get("start_date")
+        if not start_date_str:
+            print(f"[Missing start_date]: {task_data}")
+            continue
+
+        existing_tasks = FieldTodo.objects.filter(field=field, start_date=start_date_str)
+        existing_names = [t.task_name for t in existing_tasks]
+
+        if not is_duplicate_by_cosine(task_data["task_name"], existing_names):
+            save_task(user, field, task_data, start_date_str)
 
 # -------- 4. 월간 할 일 생성 -------- #
 def generate_monthly_tasks(user, field):
@@ -170,26 +234,29 @@ def generate_monthly_tasks(user, field):
     keywords = [k.keyword for k in keywords_qs]
 
     prompt = f"""
+오늘은 {today.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 위치: {field.field_address}
 키워드: {', '.join(keywords)}
-이번 달에 해야 할 일을 날짜별로 JSON 형식으로 출력해줘.
-period = 기간, cycle = 주기
+
+이번 달에 해야 할 농작업들을 날짜별로 JSON 배열 형식으로 추천해줘.
+각 작업은 반드시 start_date를 포함해야 하며, 날짜는 YYYY-MM-DD 형식으로 해줘.
+**period와 cycle은 반드시 정수로 표현해야 해.**
+
 형식:
-{{
-  "YYYY-MM-DD": [
-    {{"task_name": "작업명", "task_content": "내용", "period": 14, "cycle": 7}},
-    ...
-  ]
-}}
-무조건 이 형식에 맞게 만들어줘야해.
+[
+  {{"task_name": "작업명", "task_content": "내용", "period": 14, "cycle": 7, "start_date": "2025-05-12"}},
+  ...
+]
+설명 없이 JSON만 출력해.
 """
+
     response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model=GPT,
         messages=[{"role": "system", "content": "너는 월간 농업 계획 전문가야."},
                   {"role": "user", "content": prompt}],
         temperature=0.3,
-        max_tokens=1500
+        max_tokens=2000
     )
     try:
         parsed = json.loads(response['choices'][0]['message']['content'])
@@ -197,12 +264,13 @@ period = 기간, cycle = 주기
         print(f"[Monthly Parsing Error] {e}")
         return
 
-    for date_str, task_list in parsed.items():
-        try:
-            target_date = make_aware(datetime.strptime(date_str, "%Y-%m-%d"))
-        except Exception as e:
-            print(f"[Invalid date format in monthly task]: {date_str} => {e}")
+    for task_data in parsed:
+        start_date_str = task_data.get("start_date")
+        if not start_date_str:
+            print(f"[Missing start_date]: {task_data}")
             continue
 
-        for task_data in task_list:
-            save_task(user, field, task_data, target_date)
+        try:
+            save_task(user, field, task_data, start_date_str)
+        except Exception as e:
+            print(f"[Save Error in monthly]: {e}")
