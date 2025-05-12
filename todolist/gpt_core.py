@@ -62,7 +62,8 @@ def save_task(user, field, task_data, start_date):
     end_date = start_date + timedelta(days=period - 1)
     existing_tasks = FieldTodo.objects.filter(
         field=field,
-        start_date__range=(start_date, end_date)
+        start_date__lte=end_date,  # 새 작업의 종료일보다 시작이 빠르고
+        end_date__gte=start_date  # 새 작업의 시작일보다 종료가 느린 작업을 찾음
     )
     existing_names = [t.task_name for t in existing_tasks]
 
