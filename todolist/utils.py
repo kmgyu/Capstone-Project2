@@ -17,7 +17,7 @@ def create_task_progress_entries(task: FieldTodo):
         )
 
 
-def get_weather_by_region_and_date(region_name: str, target_date: datetime.date) -> str:
+def get_weather(region_name: str, target_date: datetime.date) -> str:
     try:
         weather = Weather.objects.get(region_name=region_name, date=target_date)
         return f"{weather.weather}, {weather.temperature}°C, 강수량 {weather.precipitation}mm"
