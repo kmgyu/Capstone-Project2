@@ -22,6 +22,9 @@ okt = Okt()
 PEST_KEYWORDS = ["진딧물", "응애", "방제", "병해충", "살충제", "살균제", "해충", "전염병", "병해", "충해"]
 GPT = "gpt-4"
 
+today = datetime.today().date()
+
+
 # -------- 공통 유틸 함수 -------- #
 def is_duplicate_by_cosine(new_task_name, existing_task_names, threshold=0.75):
     if not existing_task_names:
@@ -54,6 +57,18 @@ def save_task(user, field, task_data, start_date):
     except Exception as e:
         print(f"[Invalid period/cycle]: {task_data} => {e}")
         return
+    
+    # ✅ 중복 검사: 해당 기간 내 유사한 task_name 존재 여부
+    end_date = start_date + timedelta(days=period - 1)
+    existing_tasks = FieldTodo.objects.filter(
+        field=field,
+        start_date__range=(start_date, end_date)
+    )
+    existing_names = [t.task_name for t in existing_tasks]
+
+    if is_duplicate_by_cosine(task_data["task_name"], existing_names):
+        print(f"[중복됨] {task_data['task_name']}")
+        return  # 저장 안 함
 
     task = FieldTodo.objects.create(
         owner=user,
@@ -100,9 +115,7 @@ def generate_month_keywords(field):
         return []
 
 # -------- 2. 2주치 할 일 생성 -------- #
-def generate_biweekly_tasks(user, field, base_date):
-    pest_info = "진딧물 관찰됨 (더미 데이터)"
-    weather_info = "흐리고 습함 (더미 데이터)"
+def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date):
     last_week = base_date - timedelta(days=7)
 
     prev_tasks = FieldTodo.objects.filter(
@@ -112,26 +125,12 @@ def generate_biweekly_tasks(user, field, base_date):
     task_names = [t.task_name for t in prev_tasks]
     summary = ", ".join(task_names) if task_names else "없음"
 
-    keywords_qs = MonthlyKeyword.objects.filter(
-        field_id=field.field_id,
-        month=base_date.month,
-        year=base_date.year
-    )
-    keywords = []
-    for k in keywords_qs:
-        if isinstance(k.keywords, list):
-            for kw in k.keywords:
-                if isinstance(kw, dict) and 'keyword' in kw:
-                    keywords.append(kw['keyword'])
-                elif isinstance(kw, str):
-                    keywords.append(kw)
-
     prompt = f"""
 오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 위치: {field.field_address}
 지난 주 작업: {summary}
-기후: {weather_info}
+기후: {weather}
 키워드: {', '.join(keywords)}
 
 오늘 날짜를 기준으로 향후 14일 간(작업 시작일 기준) 해야 할 농작업들을 하루 단위로 JSON 배열 형식으로 추천해줘.(최대 하루에 2개, 무조건 하루마다 있어야하는건 아님.)
@@ -222,18 +221,11 @@ period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마�
             print(f"[Missing start_date]: {task_data}")
             continue
 
-        existing_tasks = FieldTodo.objects.filter(field=field, start_date=start_date_str)
-        existing_names = [t.task_name for t in existing_tasks]
-
-        if not is_duplicate_by_cosine(task_data["task_name"], existing_names):
-            save_task(user, field, task_data, start_date_str)
+        save_task(user, field, task_data, start_date_str)
 
 # -------- 4. 월간 할 일 생성 -------- #
-def generate_monthly_tasks(user, field):
+def generate_monthly_tasks(user, field, keywords):
     today = datetime.today().date()
-    keywords_qs = MonthlyKeyword.objects.filter(field=field, month=today.month)
-    keywords = [k.keyword for k in keywords_qs]
-
     prompt = f"""
 오늘은 {today.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
