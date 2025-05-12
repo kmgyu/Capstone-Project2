@@ -12,6 +12,7 @@ from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 
 from .models import FieldTodo, Field, TaskProgress
+from fieldmanage.models import MonthlyKeyword
 from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
 from .utils import create_task_progress_entries
 
@@ -43,8 +44,18 @@ class MonthlyFieldTodoAPIView(APIView):
             start_date__range=(start_date, end_date)
         )
 
-        serializer = FieldTodoSerializer(todos, many=True)
-        return Response(serializer.data)
+        # ✅ 키워드 가져오기
+        keywords = []
+        try:
+            mk = MonthlyKeyword.objects.get(field=field, year=year, month=month)
+            keywords = mk.keywords
+        except MonthlyKeyword.DoesNotExist:
+            pass
+
+        return Response({
+            "todos": FieldTodoSerializer(todos, many=True).data,
+            "keywords": keywords
+        })
     
     
 # 사용자 기준 Todo 기간 목록 조회 및 생성
