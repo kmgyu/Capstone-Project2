@@ -12,7 +12,7 @@ class FieldTodo(models.Model):
     task_name = models.CharField(max_length=255)
     task_content = models.TextField(blank=True, null=True)
     cycle = models.IntegerField(blank=True, null=True)
-    start_date = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField()
     period = models.IntegerField(blank=True, null=True)
     is_pest = models.BooleanField(default=False)
 
@@ -21,3 +21,19 @@ class FieldTodo(models.Model):
 
     def __str__(self):
         return self.task_name
+
+
+class TaskProgress(models.Model):
+    progress_id = models.AutoField(primary_key=True)
+    task_id = models.ForeignKey(FieldTodo, on_delete=models.CASCADE, db_column='task_id', related_name="progresses")
+    date = models.DateField() # 수행 여부를 기록한 날짜
+    status = models.CharField(max_length=10, choices=[('done', '완료'), ('skip', '미수행')], default='done')
+
+    class Meta:
+        db_table = 'task_progress'
+        unique_together = ('task_id', 'date')
+
+    def __str__(self):
+        return f"{self.task_id.task_name} - {self.date} ({self.status})"
+
+
