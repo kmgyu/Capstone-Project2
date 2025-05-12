@@ -10,6 +10,12 @@ from .gpt_core import (
     generate_monthly_tasks,
     generate_daily_tasks_for_field,
 )
+from .utils import (
+    get_month_keywords,
+    get_pest_summary,
+    get_weather_by_region_and_date,
+    get_weather_for_range
+)
 
 User = get_user_model()
 
@@ -27,9 +33,11 @@ def manual_generate_daily(request):
     data = json.loads(request.body)
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
-    generate_daily_tasks_for_field(
-        user, field, pest_info="진딧물 관찰됨 (더미)", weather_info="흐리고 습함 (더미)"
-    )
+    today = datetime.today().date()
+    weather = get_weather_by_region_and_date(field.field_address, today)
+    keywords = get_month_keywords(field)
+    pest_info = get_pest_summary(field)
+    generate_daily_tasks_for_field(user, field, pest_info, weather)
     return JsonResponse({"status": "daily generated"})
 
 
@@ -38,8 +46,12 @@ def manual_generate_biweekly(request):
     data = json.loads(request.body)
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
-    keywords = generate_month_keywords(field)
-    generate_biweekly_tasks(user, field, datetime.today().date())
+    today = datetime.today().date()
+    weather = get_weather_for_range(field.field_address, today)
+    keywords = get_month_keywords(field)
+    pest_info = get_pest_summary(field)
+    base_date = datetime.today().date()
+    generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date)
     return JsonResponse({"status": "biweekly generated"})
 
 
@@ -48,6 +60,13 @@ def manual_generate_monthly(request):
     data = json.loads(request.body)
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
-    keywords = generate_month_keywords(field)
+    today = datetime.today().date()
+    keywords = get_month_keywords(field)
     generate_monthly_tasks(user, field, keywords)
     return JsonResponse({"status": "monthly generated"})
+
+
+
+
+
+

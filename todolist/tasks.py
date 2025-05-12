@@ -4,6 +4,12 @@ from .gpt_core import (
     generate_daily_tasks_for_field,
     generate_monthly_tasks,
 )
+from .utils import (
+    get_month_keywords,
+    get_pest_summary,
+    get_weather_by_region_and_date,
+    get_weather_for_range,
+)
 
 from celery import shared_task
 from fieldmanage.models import Field
@@ -20,22 +26,19 @@ def run_generate_daily_tasks():
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
-            # 더미 데이터: 추후 병해충 및 날씨 API 연동 예정
-            generate_daily_tasks_for_field(
-                user,
-                field,
-                pest_info="진딧물 관찰됨 (더미)",
-                weather_info="흐리고 습함 (더미)",
-            )
+            pest_info = get_pest_summary(field)
+            weather_info = get_weather_by_region_and_date(field.field_address, today)
+            generate_daily_tasks_for_field(user, field, pest_info, weather_info)
 
 
 @shared_task
 def run_generate_monthly_keywords_and_tasks():
+    today = localtime().date()
     users = User.objects.all()
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
-            keywords = generate_month_keywords(field)
+            keywords = generate_month_keywords(field) or []
             generate_monthly_tasks(user, field, keywords)
 
 
@@ -46,5 +49,7 @@ def run_generate_biweekly_tasks():
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
-            keywords = generate_month_keywords(field)
-            generate_biweekly_tasks(user, field, today, keywords)
+            keywords = get_month_keywords(field)
+            pest_info = get_pest_summary(field)
+            weather_info = get_weather_for_range(field.field_address, today, days=14)
+            generate_biweekly_tasks(user, field, pest_info, weather_info, keywords, today)
