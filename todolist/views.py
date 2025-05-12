@@ -57,6 +57,35 @@ class MonthlyFieldTodoAPIView(APIView):
             "keywords": keywords
         })
     
+class AllFieldTodosAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        todos = FieldTodo.objects.filter(owner=user)
+
+        start = request.query_params.get('start')
+        end = request.query_params.get('end')
+
+        if start and end:
+            try:
+                start_date = parse_datetime(start)
+                end_date = parse_datetime(end)
+                if not (start_date and end_date):
+                    raise ValueError
+
+                # 🛠️ aware datetime으로 변환
+                if start_date.tzinfo is None:
+                    start_date = make_aware(start_date)
+                if end_date.tzinfo is None:
+                    end_date = make_aware(end_date)
+
+                todos = todos.filter(start_date__range=(start_date, end_date))
+            except ValueError:
+                return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = FieldTodoSerializer(todos, many=True)
+        return Response(serializer.data)
     
 # 사용자 기준 Todo 기간 목록 조회 및 생성
 class FieldTodoListAPIView(APIView):

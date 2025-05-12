@@ -19,7 +19,7 @@ openai.api_key = settings.OPENAI_API_KEY
 User = get_user_model()
 okt = Okt()
 
-PEST_KEYWORDS = ["진딧물", "응애", "방제", "병해충", "살충제", "살균제", "해충", "전염병", "병해", "충해"]
+PEST_KEYWORDS = ["진딧물", "방제", "병해충", "살충제", "살균제", "해충", "전염병", "병해", "충해"]
 GPT = "gpt-4"
 
 today = datetime.today().date()
@@ -137,13 +137,13 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
 오늘이 1일이라면 무조건 15일 이내에 작업 시작일이 있어야함.
 각 작업은 아래 형식을 따르고, 반드시 `start_date` 필드를 포함해야 해.
 **period와 cycle은 정수로만 표시해야 해!** (예: 0, 1, 7, 14)
-period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임. 절대로 cycle이 period보다 높을 수 없음음)
+period는 작업의 총 기간임. cycle은 무조건 0이야.
 작업은 작업 시작일 기준으로 순서대로 만들어야해
 설명 없이 JSON만 출력해야 해.
 
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}},
+  {{"task_name": "작업명", "task_content": "작업 내용", "period": "작업 기간", "cycle": 0, "start_date": "작업 시작일"}},
   ...
 ]
 그리고 토큰은 2000이내로 해야돼.
@@ -191,12 +191,12 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info):
 오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
 각 작업은 아래 형식을 따르고, 반드시 start_date 필드를 포함해야 해.
 **period와 cycle은 반드시 정수로 표현해줘.**(예: 0, 1, 7, 14)
-period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+period는 작업의 총 기간이고 cycle은 무조건 0이야.
 작업은 작업 시작일 기준으로 순서대로 만들어야해
 설명 없이 JSON만 출력해야 해.
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}}
+  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": 0, "start_date": "작업 시작일"}}
   ...
 ]
 설명 없이 JSON만 출력해.
@@ -236,13 +236,13 @@ def generate_monthly_tasks(user, field, keywords):
 각 작업은 반드시 start_date를 포함해야 하며, 날짜는 YYYY-MM-DD 형식으로 해줘.
 오늘 필요한 대응 작업을 최대 3개 JSON 배열로 출력해줘.
 **period와 cycle은 반드시 정수로 표현해줘.**(예: 0, 1, 7, 14)
-period는 작업의 총 기간이고, cycle은 작업의 기간동안 며칠마다 반복할지야(예: period:4, cycle:2라면 총 4일동안 2일씩 두 번 한다는 소리임.)
+period는 작업의 총 기간이고, cycle은 무조건 0이야.
 작업은 작업 시작일 기준으로 순서대로 만들어야해
 설명 없이 JSON만 출력해야 해.
 
 형식:
 [
-  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": "주기", "start_date": "작업 시작일"}},
+  {{"task_name": "작업명", "task_content": "내용", "period": "기간", "cycle": 0, "start_date": "작업 시작일"}},
   ...
 ]
 설명 없이 JSON만 출력해.
