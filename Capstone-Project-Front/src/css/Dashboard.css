@@ -1,0 +1,52 @@
+/* 기존 Dashboard.css에서 변경된 부분 */
+
+/* 그리드 레이아웃 */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 30px;
+  }
+  
+  /* 행 레이아웃 - TodoList 제거로 인한 수정 */
+  .dashboard-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+  }
+  
+  /* 카드 컴포넌트 */
+  .dashboard-card {
+    flex: 1;
+    background-color: var(--white-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 30px;
+  }
+  
+  /* 캘린더 카드 수정 - 다른 컴포넌트와 너비 일치 */
+  .calendar-card {
+    width: 100%;
+    max-width: 100%; /* 최대 너비 제한 제거 */
+  }
+  
+  /* 반응형 스타일 */
+  @media (max-width: 992px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .dashboard-row {
+      flex-direction: column;
+    }
+    
+    .calendar-card {
+      max-width: 100%;
+    }
+  }
+  
+  /* 모바일 화면 */
+  @media (max-width: 576px) {
+    .dashboard-card {
+      padding: 15px;
+    }
+  }

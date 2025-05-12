@@ -1,0 +1,338 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  .farmland-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes modalIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--dark-color);
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #777;
+    transition: color 0.2s;
+  }
+  
+  .close-button:hover {
+    color: #333;
+  }
+  
+  .modal-content {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+  
+  /* 맵 관련 스타일 */
+  .map-container {
+    position: relative;
+    height: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ddd;
+  }
+  
+  .kakao-map {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .map-search-bar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+  
+  .map-search-bar input {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    outline: none;
+    border-radius: 4px 0 0 4px;
+    font-size: 14px;
+  }
+  
+  .map-search-bar button {
+    border: none;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0 15px;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .map-search-bar button:hover {
+    background-color: var(--dark-color);
+  }
+  
+  .map-actions {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 10;
+  }
+  
+  .drawing-mode-btn, .clear-markers-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .drawing-mode-btn {
+    background-color: white;
+    color: var(--primary-color);
+  }
+  
+  .drawing-mode-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .clear-markers-btn {
+    background-color: white;
+    color: #f44336;
+  }
+  
+  .clear-markers-btn:hover {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  .area-info {
+    position: absolute;
+    top: 55px;
+    left: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 폼 관련 스타일 */
+  .farmland-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-group label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+  }
+  
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.1);
+  }
+  
+  .form-group select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23888' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 30px;
+  }
+  
+  .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  
+  /* 노지 유형 색상 미리보기 */
+  .form-group:has(select) {
+    position: relative;
+  }
+  
+  .type-color-preview {
+    position: absolute;
+    right: 35px;
+    top: 37px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .cancel-button, .save-button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+  
+  .cancel-button {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #666;
+  }
+  
+  .cancel-button:hover {
+    background-color: #e5e5e5;
+  }
+  
+  .save-button {
+    background-color: var(--primary-color);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .save-button:hover {
+    background-color: var(--dark-color);
+  }
+  
+  .save-button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  
+  /* 반응형 디자인 */
+  @media (min-width: 768px) {
+    .modal-content {
+      flex-direction: row;
+    }
+    
+    .map-container {
+      flex: 3;
+    }
+    
+    .farmland-form {
+      flex: 2;
+    }
+  }
+  
+  @media (max-width: 767px) {
+    .map-container {
+      height: 300px;
+    }
+    
+    .farmland-modal {
+      width: 95%;
+    }
+    
+    .map-actions {
+      flex-direction: column;
+      gap: 8px;
+      left: auto;
+      right: 10px;
+      width: auto;
+    }
+    
+    .drawing-mode-btn, .clear-markers-btn {
+      font-size: 11px;
+      padding: 6px 10px;
+    }
+    
+    .drawing-mode-btn span, .clear-markers-btn span {
+      display: none;
+    }
+  }
+  /* AddFarmlandModal.css에 추가하세요 */
+.kakao-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background-color: #f8f8f8;
+}
+
+.map-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  background-color: #f8f8f8;
+}

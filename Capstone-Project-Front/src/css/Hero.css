@@ -1,0 +1,68 @@
+
+.hero-section {
+    background-color: var(--white-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 30px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-content {
+    max-width: 50%;
+    position: relative;
+    z-index: 2;
+}
+
+.hero-title {
+    font-size: 32px;
+    color: var(--dark-color);
+    margin-bottom: 15px;
+}
+
+.hero-subtitle {
+    font-size: 16px;
+    color: var(--text-color);
+    margin-bottom: 25px;
+}
+
+.cta-button {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: var(--white-color);
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.cta-button:hover {
+    background-color: var(--dark-color);
+    transform: translateY(-2px);
+}
+
+.hero-image {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: 45%;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+/* 반응형 스타일 */
+@media (max-width: 992px) {
+    .hero-content {
+        max-width: 100%;
+    }
+    
+    .hero-image {
+        position: static;
+        max-width: 100%;
+        margin-top: 20px;
+        transform: none;
+    }
+}

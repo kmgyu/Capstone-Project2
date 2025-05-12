@@ -1,0 +1,232 @@
+/* 토글 버튼 위치 추가 조정 */
+.sidebar-container.closed .sidebar-toggle {
+  left: 40px; /* 닫혀있을 때는 사이드바 닫힌 너비에 맞춤 */
+}
+
+.sidebar-container.open .sidebar-toggle {
+  left: 400px; /* 열려있을 때는 사이드바 열린 너비에 맞춤 */
+}/* 토글 버튼 아이콘 스타일 */
+.sidebar-toggle svg {
+  width: 14px;
+  height: 14px;
+}/* 사이드바 기본 스타일 */
+.sidebar-container {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  background-color: var(--white-color);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  transition: width 0.3s ease;
+  z-index: 99; /* 헤더(z-index: 100) 바로 아래 위치 */
+  margin-top: 70px; /* 헤더 높이만큼 여백 */
+}
+
+/* 사이드바 열림/닫힘 상태 */
+.sidebar-container.open {
+  width: 400px;
+  transform: translateX(0);
+}
+
+.sidebar-container.closed {
+  width: 40px; /* 토글 버튼 공간 확보를 위해 너비 증가 */
+  transform: translateX(0);
+}
+
+/* 토글 버튼 스타일 - 사각형으로 변경 */
+.sidebar-toggle {
+  position: fixed;
+  left: 400px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 50px;
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  border: none;
+  border-radius: 0 4px 4px 0; /* 오른쪽 모서리만 둥글게 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 101;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: left 0.3s ease, background-color 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--dark-color);
+}
+
+/* 사이드바 내용 스타일 */
+.sidebar-content {
+  padding: 20px;
+  width: 100%;
+  height: calc(100vh - 70px); /* 헤더 높이 뺀 전체 높이 */
+  overflow-y: auto; /* 내용이 넘칠 때만 스크롤바 표시 */
+  overflow-x: hidden;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Chrome, Safari에서 스크롤바 숨기기 */
+.sidebar-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* 열린 상태 */
+.sidebar-container.open .sidebar-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 닫힌 상태 */
+.sidebar-container.closed .sidebar-content {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* 사이드바 헤더 */
+.sidebar-header {
+  border-bottom: 2px solid var(--primary-color);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.sidebar-header h3 {
+  color: var(--dark-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+/* 농지 목록 스타일 */
+.farmland-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-right: 5px; /* 스크롤바 공간 확보 */
+}
+
+/* 농지 아이템 레이아웃 변경 - 세로형 */
+.farmland-item {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--light-color);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: var(--transition);
+  cursor: pointer;
+  margin-bottom: 20px;
+  max-width: 360px; /* 최대 너비 제한 */
+}
+
+.farmland-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #e8f5e9; /* 연한 녹색 배경으로 변경 */
+}
+
+.farmland-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.farmland-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.farmland-info {
+  padding: 15px;
+}
+
+.farmland-title {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: var(--dark-color);
+}
+
+.farmland-description {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 노지 추가 버튼 */
+.add-farmland-button {
+  /* width: 100%; */
+  padding: 12px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.add-farmland-button:hover {
+  background-color: var(--dark-color);
+}
+
+/* 스크롤바 스타일 커스터마이징 */
+.sidebar-content::-webkit-scrollbar {
+  width: 8px;
+  margin-right: 5px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  margin: 5px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: var(--secondary-color);
+  border-radius: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* 반응형 스타일 */
+@media (max-width: 992px) {
+  .sidebar-container.open {
+    width: 250px;
+  }
+  
+  .sidebar-content {
+    width: 250px;
+  }
+}
+
+@media (max-width: 576px) {
+  .sidebar-container {
+    margin-top: 60px; /* 모바일에서 헤더 높이 조정 */
+  }
+  
+  .sidebar-container.open {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .sidebar-toggle {
+    right: -12px;
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+  }
+}

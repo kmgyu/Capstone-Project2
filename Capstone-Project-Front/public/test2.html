@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>농업 드론 일정 관리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/ko.js"></script>
+    <link rel="stylesheet" href="test.css" />
+</head>
+<body>
+    <!-- 헤더 -->
+    <header>
+        <div class="container header-container">
+            <div class="logo">
+                <i class="fas fa-drone" style="color: var(--primary-color); font-size: 28px;"></i>
+                <h1>농업드론관리</h1>
+            </div>
+            
+            <ul class="nav-menu">
+                <li><a href="#" class="active">홈</a></li>
+                <li><a href="#">드론 현황</a></li>
+                <li><a href="#">작업 일정</a></li>
+                <li><a href="#">농장 관리</a></li>
+                <li><a href="#">도움말</a></li>
+            </ul>
+            
+            <div class="header-right">
+                <div class="weather-info">
+                    <i class="fas fa-sun"></i>
+                    <span id="weather-text">맑음, 22°C</span>
+                </div>
+                
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span>테스터</span>
+                </div>
+                
+                <div class="hamburger-menu">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 메인 콘텐츠 -->
+    <main class="main-content">
+        <div class="container">
+            <!-- 히어로 섹션 -->
+            <section class="hero-section">
+                <div class="hero-content">
+                    <h2 class="hero-title">스마트한 농업의 시작,<br>드론으로 관리하세요</h2>
+                    <p class="hero-subtitle">효율적인 농작물 관리와 모니터링을 위한 드론 일정 관리 시스템으로 더 스마트한 농업을 경험해보세요.</p>
+                    <a href="#" class="cta-button">시작하기</a>
+                </div>
+                <img src="/api/placeholder/500/300" alt="이미지 자리" class="hero-image">
+            </section>
+            <!-- 대시보드 그리드 -->
+            <div class="dashboard-grid">
+                <!-- 캘린더 섹션 -->
+                <section class="calendar-section">
+                    <h3 class="section-title">작업 캘린더</h3>
+                    <div class="calendar-header">
+                        <div class="calendar-title" id="calendar-month-year">2025년 3월</div>
+                        <div class="calendar-nav">
+                            <button class="nav-button" id="prev-month">이전</button>
+                            <button class="nav-button" id="next-month">다음</button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-weekdays">
+                        <div class="calendar-weekday">일</div>
+                        <div class="calendar-weekday">월</div>
+                        <div class="calendar-weekday">화</div>
+                        <div class="calendar-weekday">수</div>
+                        <div class="calendar-weekday">목</div>
+                        <div class="calendar-weekday">금</div>
+                        <div class="calendar-weekday">토</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-days">
+                        <!-- 캘린더 날짜는 자바스크립트로 동적 생성 -->
+                    </div>
+                </section>
+                
+                <!-- Todo 리스트 섹션 -->
+                <section class="todo-section">
+                    <h3 class="section-title">오늘 할 일</h3>
+                    <form class="todo-form" id="todo-form">
+                        <input type="text" class="todo-input" id="todo-input" placeholder="할 일 추가...">
+                        <button type="submit" class="todo-button">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </form>
+                    <ul class="todo-list" id="todo-list">
+                        <li class="todo-item">
+                            <input type="checkbox" class="todo-checkbox">
+                            <span class="todo-text">논 벼 생육 상태 확인</span>
+                            <button class="todo-delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                        <li class="todo-item completed">
+                            <input type="checkbox" class="todo-checkbox" checked>
+                            <span class="todo-text">드론 배터리 충전</span>
+                            <button class="todo-delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                        <li class="todo-item">
+                            <input type="checkbox" class="todo-checkbox">
+                            <span class="todo-text">방제 작업 계획 수립</span>
+                            <button class="todo-delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                        <li class="todo-item">
+                            <input type="checkbox" class="todo-checkbox">
+                            <span class="todo-text">비닐하우스 온도 체크</span>
+                            <button class="todo-delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+            <!-- 슬라이더 섹션 -->
+            <section class="slider-section">
+                <h3 class="section-title">농장 현황</h3>
+                <div class="slider-container">
+                    <div class="slider">
+                        <div class="slide">
+                            <!-- <img src="/api/placeholder/800/400" alt="농장 이미지 1"> -->
+                            <div class="slide-content">
+                                <h4 class="slide-title">벼농사 모니터링</h4>
+                                <p class="slide-description">최신 드론 기술로 작물의 상태를 정확하게 확인하세요.</p>
+                            </div>
+                        </div>
+                        <div class="slide">
+                            <img src="/api/placeholder/800/400" alt="농장 이미지 2">
+                            <div class="slide-content">
+                                <h4 class="slide-title">과수원 관리</h4>
+                                <p class="slide-description">넓은 과수원도 드론으로 효율적으로 관리할 수 있습니다.</p>
+                            </div>
+                        </div>
+                        <div class="slide">
+                            <img src="/api/placeholder/800/400" alt="농장 이미지 3">
+                            <div class="slide-content">
+                                <h4 class="slide-title">비닐하우스 점검</h4>
+                                <p class="slide-description">온도와 습도를 모니터링하여 최적의 환경을 유지하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-controls">
+                        <div class="slider-arrow prev">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                        <div class="slider-arrow next">
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                    <div class="slider-dots">
+                        <div class="slider-dot active"></div>
+                        <div class="slider-dot"></div>
+                        <div class="slider-dot"></div>
+                    </div>
+                </div>
+            </section>
+            
+            
+        </div>
+    </main>
+    
+    <!-- 푸터 -->
+    <footer>
+        <div class="container">
+            <div class="footer-container">
+                <div class="footer-column">
+                    <h3>농업드론관리</h3>
+                    <p>최신 드론 기술을 활용한 스마트 농업 관리 시스템으로 농장 운영을 더욱 효율적으로 만들어 드립니다.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>주요 기능</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">드론 현황 관리</a></li>
+                        <li><a href="#">작업 일정 관리</a></li>
+                        <li><a href="#">농작물 모니터링</a></li>
+                        <li><a href="#">농장 지도 관리</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>고객 지원</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">자주 묻는 질문</a></li>
+                        <li><a href="#">이용 가이드</a></li>
+                        <li><a href="#">고객센터</a></li>
+                        <li><a href="#">기술 지원</a></li>
+                        <li><a href="#">문의하기</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>연락처</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 전라남도 목포시</p>
+                    <p><i class="fas fa-phone"></i> 02-123-4567</p>
+                    <p><i class="fas fa-envelope"></i> info@farmdrone.kr</p>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 농업드론관리 시스템. All Rights Reserved.
+            </div>
+        </div>
+    </footer>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 캘린더 기능 구현
+        const calendarDays = document.getElementById('calendar-days');
+        const calendarMonthYear = document.getElementById('calendar-month-year');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        
+        let currentDate = moment();
+        
+        // 캘린더 렌더링 함수
+        function renderCalendar() {
+            // 현재 월의 첫날과 마지막 날
+            const firstDay = moment(currentDate).startOf('month');
+            const lastDay = moment(currentDate).endOf('month');
+            
+            // 캘린더 타이틀 업데이트
+            calendarMonthYear.textContent = currentDate.format('YYYY년 M월');
+            
+            // 캘린더 초기화
+            calendarDays.innerHTML = '';
+            
+            // 이전 달의 마지막 몇 일 추가 (빈 칸 채우기)
+            const prevMonthDays = firstDay.day();
+            for (let i = 0; i < prevMonthDays; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day prev-month-day';
+                dayElement.textContent = moment(firstDay).subtract(prevMonthDays - i, 'days').date();
+                calendarDays.appendChild(dayElement);
+            }
+            
+            // 현재 달의 날짜 추가
+            for (let i = 1; i <= lastDay.date(); i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = i;
+                
+                // 오늘 날짜 강조
+                if (moment(currentDate).date(i).isSame(moment(), 'day')) {
+                    dayElement.classList.add('today');
+                }
+                
+                // 일정이 있는 날짜 표시 (예시 데이터)
+                if (i === 5 || i === 12 || i === 18 || i === 25) {
+                    const eventDot = document.createElement('div');
+                    eventDot.className = 'event-dot';
+                    dayElement.appendChild(eventDot);
+                }
+                
+                // 날짜 클릭 이벤트
+                dayElement.addEventListener('click', function() {
+                    document.querySelectorAll('.calendar-day').forEach(day => {
+                        day.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    // 선택한 날짜에 대한 일정 표시 등의 기능 추가 가능
+                });
+                
+                calendarDays.appendChild(dayElement);
+            }
+            
+            // 다음 달의 시작 일 추가 (남은 칸 채우기)
+            const remainingDays = 42 - (prevMonthDays + lastDay.date()); // 7x6 그리드 완성
+            for (let i = 1; i <= remainingDays; i++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day next-month-day';
+                dayElement.textContent = i;
+                calendarDays.appendChild(dayElement);
+            }
+        }
+        
+        // 이전 달 버튼 클릭 이벤트
+        prevMonthBtn.addEventListener('click', function() {
+            currentDate = moment(currentDate).subtract(1, 'month');
+            renderCalendar();
+        });
+        
+        // 다음 달 버튼 클릭 이벤트
+        nextMonthBtn.addEventListener('click', function() {
+            currentDate = moment(currentDate).add(1, 'month');
+            renderCalendar();
+        });
+        
+        // 초기 캘린더 렌더링
+        renderCalendar();
+        
+        // Todo 리스트 기능 구현
+        const todoForm = document.getElementById('todo-form');
+        const todoInput = document.getElementById('todo-input');
+        const todoList = document.getElementById('todo-list');
+        
+        // 할 일 추가 함수
+        function addTodo(text) {
+            const li = document.createElement('li');
+            li.className = 'todo-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'todo-checkbox';
+            checkbox.addEventListener('change', function() {
+                li.classList.toggle('completed', this.checked);
+            });
+            
+            const span = document.createElement('span');
+            span.className = 'todo-text';
+            span.textContent = text;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'todo-delete';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.addEventListener('click', function() {
+                li.remove();
+            });
+            
+            li.appendChild(checkbox);
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+            todoList.appendChild(li);
+        }
+        
+        // 할 일 폼 제출 이벤트
+        todoForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const todoText = todoInput.value.trim();
+            if (todoText) {
+                addTodo(todoText);
+                todoInput.value = '';
+            }
+        });
+        
+        // 기존 할 일 항목 체크박스 및 삭제 버튼 이벤트 연결
+        document.querySelectorAll('.todo-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.closest('.todo-item').classList.toggle('completed', this.checked);
+            });
+        });
+        
+        document.querySelectorAll('.todo-delete').forEach(deleteBtn => {
+            deleteBtn.addEventListener('click', function() {
+                this.closest('.todo-item').remove();
+            });
+        });
+        
+        // 슬라이더 기능 구현
+        const slider = document.querySelector('.slider');
+        const slides = document.querySelectorAll('.slide');
+        const prevArrow = document.querySelector('.slider-arrow.prev');
+        const nextArrow = document.querySelector('.slider-arrow.next');
+        const dots = document.querySelectorAll('.slider-dot');
+        
+        let currentSlide = 0;
+        const slideCount = slides.length;
+        
+        // 슬라이드 위치 업데이트 함수
+        function updateSlider() {
+            slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+            
+            // 활성 도트 업데이트
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlide);
+            });
+        }
+        
+        // 이전 슬라이드 버튼 클릭 이벤트
+        prevArrow.addEventListener('click', function() {
+            currentSlide = (currentSlide - 1 + slideCount) % slideCount;
+            updateSlider();
+        });
+        
+        // 다음 슬라이드 버튼 클릭 이벤트
+        nextArrow.addEventListener('click', function() {
+            currentSlide = (currentSlide + 1) % slideCount;
+            updateSlider();
+        });
+        
+        // 도트 클릭 이벤트
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', function() {
+                currentSlide = index;
+                updateSlider();
+            });
+        });
+        
+        // 자동 슬라이드 기능 (5초마다)
+        let slideInterval = setInterval(function() {
+            currentSlide = (currentSlide + 1) % slideCount;
+            updateSlider();
+        }, 5000);
+        
+        // 슬라이더에 마우스 호버시 자동 슬라이드 일시정지
+        const sliderContainer = document.querySelector('.slider-container');
+        sliderContainer.addEventListener('mouseenter', function() {
+            clearInterval(slideInterval);
+        });
+        
+        sliderContainer.addEventListener('mouseleave', function() {
+            slideInterval = setInterval(function() {
+                currentSlide = (currentSlide + 1) % slideCount;
+                updateSlider();
+            }, 5000);
+        });
+        
+        // 햄버거 메뉴 토글 기능
+        const hamburgerMenu = document.querySelector('.hamburger-menu');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        hamburgerMenu.addEventListener('click', function() {
+            navMenu.classList.toggle('show-mobile-menu');
+        });
+        
+        // 날씨 정보 업데이트 (실제로는 API를 사용하지만 예시로 임의 데이터 사용)
+        function updateWeather() {
+            const weatherIcons = ['fa-sun', 'fa-cloud', 'fa-cloud-rain', 'fa-cloud-sun'];
+            const weatherDescriptions = ['맑음', '흐림', '비', '구름 조금'];
+            const temperatures = [22, 18, 15, 20];
+            
+            const randomIndex = Math.floor(Math.random() * weatherIcons.length);
+            const weatherIcon = document.querySelector('.weather-info i');
+            const weatherText = document.getElementById('weather-text');
+            
+            // 기존 아이콘 클래스 제거
+            weatherIcon.className = '';
+            weatherIcon.classList.add('fas', weatherIcons[randomIndex]);
+            
+            // 날씨 텍스트 업데이트
+            weatherText.textContent = `${weatherDescriptions[randomIndex]}, ${temperatures[randomIndex]}°C`;
+        }
+        
+        // 초기 날씨 정보 설정
+        updateWeather();
+    });
+</script>

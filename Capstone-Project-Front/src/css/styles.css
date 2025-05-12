@@ -1,0 +1,157 @@
+/* 기본 스타일 */
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f5f5dc;
+  margin: 0;
+  padding: 0;
+}
+
+/* 헤더 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #388e3c; /* 초록 */
+  color: white;
+  padding: 15px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.auth-buttons button {
+  background-color: white;
+  color: #388e3c;
+  border: none;
+  padding: 8px 12px;
+  margin-left: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+/* 전체 컨테이너 */
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  width: 90%;
+  margin: 20px auto;
+  gap: 20px;
+}
+
+/* 왼쪽 패널 */
+.left-panel {
+  flex: 1;
+  max-width: 300px;
+  background-color: #dcedc8;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+/* 날씨 정보 */
+.weather {
+  background-color: #ffcc80;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.weather-info {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Todo 리스트 */
+.todo-list {
+  margin-top: 20px;
+}
+
+.todo-list h2 {
+  background-color: #64b5f6;
+  color: white;
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.todo-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.todo-list li {
+  padding: 5px;
+  border-bottom: 1px solid #ccc;
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #ff7043;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+/* 오른쪽 패널 */
+.right-panel {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 캘린더 스타일 */
+.calendar {
+  background-color: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.fc {
+  max-width: 100%;
+}
+
+
+.calendar-content img {
+  width: 100%;
+  height: auto;
+}
+
+/* 드론 항공 사진 */
+.drone-image {
+  background-color: #a5d6a7;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  position: relative;
+}
+
+.image-content {
+  position: relative;
+}
+
+.image-content img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+/* 필터 버튼 */
+.filter-buttons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.filter-buttons button {
+  background-color: white;
+  border: 1px solid #666;
+  padding: 5px;
+  margin: 2px;
+  cursor: pointer;
+}

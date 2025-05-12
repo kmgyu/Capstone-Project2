@@ -1,0 +1,98 @@
+/* 푸터 스타일 */
+footer {
+    background-color: var(--dark-color);
+    color: var(--white-color);
+    padding: 40px 0;
+    margin-top: 40px;
+}
+
+.footer-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+}
+
+.footer-column h3 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+.footer-links {
+    list-style: none;
+    padding-left: 0; /* 추가: 기본 패딩 제거 */
+}
+
+.footer-links li {
+    margin-bottom: 10px;
+    display: block; /* 추가: 세로 정렬 위해 */
+}
+
+.footer-links a {
+    color: #aaa;
+    text-decoration: none;
+    transition: var(--transition);
+    display: block; /* 추가: 링크를 블록 요소로 만들어 세로 정렬 */
+}
+
+.footer-links a:hover {
+    color: var(--white-color);
+}
+
+.social-links {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.social-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--white-color);
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.social-links a:hover {
+    background-color: var(--accent-color);
+    transform: translateY(-3px);
+}
+
+/* 추가: 연락처 아이콘 스타일 */
+.footer-column p {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.footer-column p svg {
+    margin-right: 10px;
+    width: 16px;
+}
+
+.copyright {
+    text-align: center;
+    padding-top: 30px;
+    margin-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 992px) {
+    .footer-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .footer-container {
+        grid-template-columns: 1fr;
+    }
+}
