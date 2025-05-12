@@ -119,6 +119,30 @@ def get_mid_term(region_name):
 
 def get_combined_weather(lat, lon, address):
     region_name = get_region_name_from_address(address)
+
     short_term = get_short_term(lat, lon)
     mid_term = get_mid_term(region_name)
-    return [{**item, "region_name": region_name} for item in (short_term + mid_term)]
+
+    # 🔍 날짜 기준 병합
+    combined = []
+
+    # 오늘 날짜 기준
+    today = datetime.date.today()
+
+    # 단기 예보: 오늘 ~ 3일 후
+    for i in range(0, 4):
+        target_date = today + datetime.timedelta(days=i)
+        match = next((item for item in short_term if item["date"] == target_date), None)
+        if match:
+            match["region_name"] = region_name
+            combined.append(match)
+
+    # 중기 예보: 4일 후 ~ 7일 후
+    for i in range(4, 8):
+        target_date = today + datetime.timedelta(days=i)
+        match = next((item for item in mid_term if item["date"] == target_date), None)
+        if match:
+            match["region_name"] = region_name
+            combined.append(match)
+
+    return combined

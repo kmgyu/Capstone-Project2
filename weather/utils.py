@@ -36,4 +36,7 @@ def convert_to_grid(lat, lon):
     return x, y
 
 def get_region_name_from_address(address: str) -> str:
-    return address.split()[0]
+    parts = address.split()
+    if len(parts) >= 2:
+        return f"{parts[0]}, {parts[1]}"
+    return address  
