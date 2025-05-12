@@ -47,38 +47,36 @@ class MonthlyFieldTodoAPIView(APIView):
         return Response(serializer.data)
     
     
-# 사용자 기준 Todo 목록 조회 및 생성
+# 사용자 기준 Todo 기간 목록 조회 및 생성
 class FieldTodoListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, field_id=None):
         user = request.user
-        start = request.query_params.get('start')
-        end = request.query_params.get('end')
+        todos = FieldTodo.objects.filter(owner=user)
 
-        if not (start and end):
-            return Response({'error': 'start와 end 날짜가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            start_date = parse_datetime(start)
-            end_date = parse_datetime(end)
-            if not (start_date and end_date):
-                raise ValueError
-        except ValueError:
-            return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        todos = FieldTodo.objects.filter(
-            owner=user,
-            start_date__range=(start_date, end_date)
-        )
-
+        # 필드 기준 필터링
         if field_id:
             field = get_object_or_404(Field, pk=field_id, owner=user)
             todos = todos.filter(field=field)
 
+        # 날짜 필터링 (선택적)
+        start = request.query_params.get('start')
+        end = request.query_params.get('end')
+        if start and end:
+            try:
+                start_date = parse_datetime(start)
+                end_date = parse_datetime(end)
+                if not (start_date and end_date):
+                    raise ValueError
+                todos = todos.filter(start_date__range=(start_date, end_date))
+            except ValueError:
+                return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = FieldTodoSerializer(todos, many=True)
         return Response(serializer.data)
 
+    # 할 일 생성성
     def post(self, request, field_id):
         user = request.user
 
@@ -89,6 +87,7 @@ class FieldTodoListAPIView(APIView):
 
         data = request.data.copy()
         data['field'] = field.field_id
+        data['cycle'] = 0  # ✅ 무조건 0으로 고정
 
         serializer = FieldTodoSerializer(data=data)
         if serializer.is_valid():
@@ -121,11 +120,14 @@ class FieldTodoDetailAPIView(APIView):
         serializer = FieldTodoSerializer(todo)
         return Response(serializer.data)
 
-    def put(self, request, task_id):
+    def patch(self, request, task_id):
         todo = self.get_object(task_id, request.user)
-        serializer = FieldTodoSerializer(todo, data=request.data, partial=True) 
+        if not todo:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = FieldTodoSerializer(todo, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()  # 기존 필드 유지
+            serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -141,7 +143,6 @@ class TaskProgressUpdateAPIView(APIView):
     def patch(self, request, task_id):
         user = request.user
 
-        # 소유자 검증
         task = get_object_or_404(FieldTodo, pk=task_id)
         if task.owner != user:
             return Response({"detail": "권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
@@ -164,7 +165,21 @@ class TaskProgressUpdateAPIView(APIView):
                 defaults={'status': status_value}
             )
 
-            if not created:
+            if created:
+                # 새로 생성되었고 상태가 'done'이면 cycle += 1
+                if status_value == 'done':
+                    task.cycle += 1
+                    task.save()
+            else:
+                prev_status = progress.status
+
+                if prev_status != 'done' and status_value == 'done':
+                    task.cycle += 1
+                    task.save()
+                elif prev_status == 'done' and status_value != 'done':
+                    task.cycle = max(0, task.cycle - 1)
+                    task.save()
+
                 progress.status = status_value
                 progress.save()
 
