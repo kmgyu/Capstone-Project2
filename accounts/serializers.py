@@ -1,5 +1,6 @@
 from .models import PasswordResetToken, User
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 import re
 
 class UserSerializer(serializers.ModelSerializer):
@@ -7,7 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'password', 'username']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True}, # 클라이언트에서 저장은 되지만 우리 DB에서 비밀번호는 꺼내올수 없게 하는 안전장치
+            'username': {'required': True},
         }
 
     def validate_email(self, value):
@@ -25,8 +27,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return User.objects.create_user(
+            user_id=validated_data['user_id'],
             email=validated_data['email'],
-            username=validated_data.get('username', ''),
+            username=validated_data['username'],
             password=validated_data['password']
         )
 
@@ -56,3 +59,11 @@ class ForgotPasswordSerializer(serializers.Serializer):
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("등록되지 않은 이메일입니다.")
         return value
+    
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        token['email'] = user.email
+        return token

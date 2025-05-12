@@ -3,14 +3,27 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
 from accounts.models import User, PasswordResetToken
 from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
-def get_user_from_access_token(token):
+def get_user_from_access_token(access_token):
     try:
-        access_token = AccessToken(token)
-        user_id = access_token.get('user_id')
-        return get_object_or_404(User, pk=user_id)
-    except Exception:
+        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=['HS256'])
+        email = payload.get('email')
+        jti = payload.get('jti')  # ✅ jti 꺼내기
+        if not email or not jti:
+            return None
+
+        # ✅ jti로 OutstandingToken 찾기
+        token_obj = OutstandingToken.objects.filter(jti=jti).first()
+        if token_obj and BlacklistedToken.objects.filter(token=token_obj).exists():
+            return None
+
+        user = User.objects.get(email=email)
+        return user
+
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, User.DoesNotExist):
         return None
+
 
 def validate_reset_token(token_str):
     try:

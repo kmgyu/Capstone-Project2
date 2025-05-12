@@ -8,82 +8,102 @@ from django.utils import timezone
 from django.template.loader import render_to_string
 from django.conf import settings
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from .models import User, PasswordResetToken
 from .serializers import *
 from .utils import get_user_from_access_token, validate_reset_token
 
 class AuthAPIView(APIView):
+    # 토큰 확인용 API
     def get(self, request):
-        access = request.COOKIES.get('access')
-        refresh = request.COOKIES.get('refresh')
+        access = request.headers.get('Authorization')
 
-        if not access:
+        if access and access.startswith('Bearer '):
+            access = access.split(' ')[1]
+        else:
             return Response({"detail": "Access token is missing."}, status=401)
 
-        user = get_user_from_access_token(access)
-        if user:
-            return Response(UserSerializer(user).data)
+        try:
+            user = get_user_from_access_token(access)
+            if user:
+                return Response(UserSerializer(user).data, status=200)
+            else:
+                return Response({"detail": "유저 인증 실패"}, status=401)
 
-        # 토큰 만료 or 오류 → refresh 시도
-        if refresh:
-            try:
-                serializer = TokenRefreshSerializer(data={"refresh": refresh})
-                serializer.is_valid(raise_exception=True)
-                access_token = serializer.validated_data.get('access')
-                user = get_user_from_access_token(access_token)
-                if not user:
-                    return Response({"detail": "유저 인증 실패"}, status=401)
-                res = Response(UserSerializer(user).data)
-                res.set_cookie("access", access_token, httponly=True, secure=True)
-                return res
-            except Exception:
-                return Response({"detail": "리프레시 토큰이 유효하지 않습니다."}, status=401)
+        except jwt.ExpiredSignatureError:
+            return Response({"detail": "Access token expired."}, status=401)
 
-        return Response({"detail": "토큰이 유효하지 않습니다."}, status=401)
+        except jwt.InvalidTokenError:
+            return Response({"detail": "Invalid access token."}, status=401)
 
+        except Exception as e:
+            return Response({"detail": "토큰 검증 중 서버 오류가 발생했습니다."}, status=500)
+
+
+    # 로그인용 API
     def post(self, request):
-        user = authenticate(email=request.data.get("email"), password=request.data.get("password"))
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        user = authenticate(email=email, password=password)
+        
         if user:
-            token = TokenObtainPairSerializer.get_token(user)
+            # ✅ 기존 발급된 모든 토큰 무효화
+            try:
+                # 기존 토큰 블랙리스트 처리
+                tokens = OutstandingToken.objects.filter(user=user)
+                for token in tokens:
+                    if not BlacklistedToken.objects.filter(token=token).exists():
+                        BlacklistedToken.objects.get_or_create(token=token)
+            except Exception as e:
+                # 블랙리스트 사용 안할 때 에러 방지
+                pass
+
+            # ✅ 새 토큰 발급
+            token = CustomTokenObtainPairSerializer.get_token(user)
             access_token, refresh_token = str(token.access_token), str(token)
 
             res = Response({
                 "user": UserSerializer(user).data,
                 "message": "로그인 성공",
-                "token": {"access": access_token, "refresh": refresh_token},
+                "token": {
+                    "access": access_token,
+                    "refresh": refresh_token,
+                },
             })
-            res.set_cookie("access", access_token, httponly=True, secure=True)
-            res.set_cookie("refresh", refresh_token, httponly=True, secure=True)
+            # 밑의 코드 두줄은 왜 있는지 잘 모르겠음 우리 프론트는 로컬세션에 알아서 토큰 저장해서 쓰는데 set_cookie를 왜 쓰는것?
+            # res.set_cookie("access", access_token, httponly=True, secure=True)
+            # res.set_cookie("refresh", refresh_token, httponly=True, secure=True)
             return res
 
         return Response({"message": "이메일 또는 비밀번호가 틀렸습니다."}, status=400)
-
-    def delete(self, request):
-        res = Response({"message": "로그아웃 완료"}, status=202)
-        res.delete_cookie("access")
-        res.delete_cookie("refresh")
-        return res
 
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            token = TokenObtainPairSerializer.get_token(user)
-            access_token, refresh_token = str(token.access_token), str(token)
+
+            user_data = {
+                "email": user.email,
+                "username": user.username,
+            }
 
             res = Response({
-                "user": serializer.data,
+                "user": user_data,
                 "message": "회원가입 성공",
-                "token": {"access": access_token, "refresh": refresh_token},
             }, status=201)
-            res.set_cookie("access", access_token, httponly=True, secure=True)
-            res.set_cookie("refresh", refresh_token, httponly=True, secure=True)
+
             return res
 
-        return Response(serializer.errors, status=400)
+        return Response({
+            "message": "요청 데이터가 유효하지 않습니다.",
+            "errors": serializer.errors,
+        }, status=400)
+
 
 class ForgotPasswordView(APIView):
+    # 비밀번호 재설정용 API
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         if serializer.is_valid():
@@ -93,13 +113,20 @@ class ForgotPasswordView(APIView):
             except User.DoesNotExist:
                 return Response({"success": False, "message": "등록되지 않은 이메일입니다."}, status=404)
 
+            # 1시간 이내 요청 횟수 제한
             recent_requests = PasswordResetToken.objects.filter(
                 user=user, created_at__gte=timezone.now() - timezone.timedelta(hours=1)
             )
             if recent_requests.count() >= 3:
                 return Response({"success": False, "message": "요청이 너무 많습니다. 1시간 후 다시 시도하세요."}, status=429)
 
+            # ✅ 기존에 발급된 사용하지 않은 토큰 무효화
+            PasswordResetToken.objects.filter(user=user, used=False).update(used=True)
+
+            # ✅ 새로운 토큰 발급
             token_obj = PasswordResetToken.objects.create(user=user)
+
+            # 이메일 발송
             reset_url = f"http://orion.mokpo.ac.kr:8483/reset-password/{token_obj.token}"
             html_msg = render_to_string("email/reset_password.html", {"user": user, "token": token_obj.token})
 
@@ -110,8 +137,11 @@ class ForgotPasswordView(APIView):
                 recipient_list=[email],
                 html_message=html_msg
             )
-            return Response({"success": True, "message": "이메일이 발송되었습니다."})
+
+            return Response({"success": True, "message": "비밀번호 재설정 이메일이 발송되었습니다."})
+
         return Response({"success": False, "message": serializer.errors}, status=400)
+
 
 class ResetPasswordVerifyView(APIView):
     def get(self, request, token):
