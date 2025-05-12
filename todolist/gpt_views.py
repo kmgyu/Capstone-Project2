@@ -13,7 +13,7 @@ from .gpt_core import (
 from .utils import (
     get_month_keywords,
     get_pest_summary,
-    get_weather_by_region_and_date,
+    get_weather,
     get_weather_for_range
 )
 
@@ -34,7 +34,7 @@ def manual_generate_daily(request):
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
     today = datetime.today().date()
-    weather = get_weather_by_region_and_date(field.field_address, today)
+    weather = get_weather(field.field_address, today)
     keywords = get_month_keywords(field)
     pest_info = get_pest_summary(field)
     generate_daily_tasks_for_field(user, field, pest_info, weather)

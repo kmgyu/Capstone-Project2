@@ -7,7 +7,7 @@ from .gpt_core import (
 from .utils import (
     get_month_keywords,
     get_pest_summary,
-    get_weather_by_region_and_date,
+    get_weather,
     get_weather_for_range,
 )
 
@@ -27,7 +27,7 @@ def run_generate_daily_tasks():
         fields = Field.objects.filter(owner=user)
         for field in fields:
             pest_info = get_pest_summary(field)
-            weather_info = get_weather_by_region_and_date(field.field_address, today)
+            weather_info = get_weather(field.field_address, today)
             generate_daily_tasks_for_field(user, field, pest_info, weather_info)
 
 
