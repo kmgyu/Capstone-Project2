@@ -66,3 +66,7 @@ sudo docker compose build
 
 # Docker Compose로 컨테이너 실행
 sudo docker-compose up -d
+
+# Redis-server 켜는 법
+service redis-server start
+
