@@ -23,8 +23,9 @@ User = get_user_model()
 @csrf_exempt
 def generate_keywords(request):
     data = json.loads(request.body)
+    base_date = datetime.today().date()
     field = Field.objects.get(field_id=data["field_id"])
-    keywords = generate_month_keywords(field)
+    keywords = generate_month_keywords(field, base_date)
     return JsonResponse({"keywords": keywords})
 
 
@@ -33,11 +34,10 @@ def manual_generate_daily(request):
     data = json.loads(request.body)
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
-    today = datetime.today().date()
-    weather = get_weather(field.field_address, today)
-    keywords = get_month_keywords(field)
+    base_date = datetime.today().date()
+    weather = get_weather(field.field_address, base_date)
     pest_info = get_pest_summary(field)
-    generate_daily_tasks_for_field(user, field, pest_info, weather)
+    generate_daily_tasks_for_field(user, field, pest_info, weather, base_date)
     return JsonResponse({"status": "daily generated"})
 
 
@@ -60,9 +60,9 @@ def manual_generate_monthly(request):
     data = json.loads(request.body)
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
-    today = datetime.today().date()
     keywords = get_month_keywords(field)
-    generate_monthly_tasks(user, field, keywords)
+    base_date = datetime.today().date()
+    generate_monthly_tasks(user, field, keywords, base_date)
     return JsonResponse({"status": "monthly generated"})
 
 
