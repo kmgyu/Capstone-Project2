@@ -19,3 +19,17 @@ class Field(models.Model):
         
     def __str__(self):
         return self.field_name
+
+class MonthlyKeyword(models.Model):
+    keyword_id = models.AutoField(primary_key=True)
+    field_id = models.ForeignKey(Field, on_delete=models.CASCADE, db_column='field_id')
+    year = models.IntegerField()
+    month = models.IntegerField()
+    keywords = models.JSONField()
+
+    class Meta:
+        db_table = 'monthly_keyword'
+        unique_together = ('field_id', 'year', 'month')
+
+    def __str__(self):
+        return f"{self.field_id.field_name} - {self.year}.{self.month}"
