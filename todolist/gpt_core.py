@@ -64,6 +64,12 @@ def save_task(user, field, task_data, start_date):
     except Exception as e:
         print(f"[Invalid period/cycle]: {task_data} => {e}")
         return
+    
+    try:
+        priority = int(task_data.get("priority", 3))
+    except Exception as e:
+        print(f"[Invalid priority]: {task_data} => {e}")
+        priority = 3
 
     # ✅ 중복 검사: 해당 연/월 중 기간 겹치는 작업들만 확인
     end_date = start_date + timedelta(days=period - 1)
@@ -87,6 +93,7 @@ def save_task(user, field, task_data, start_date):
         field=field,
         task_name=task_data["task_name"][:50],
         task_content=task_data["task_content"],
+        priority=priority,
         period=period,
         cycle=cycle,
         is_pest=any(k in task_data["task_content"] for k in PEST_KEYWORDS),
