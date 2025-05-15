@@ -12,16 +12,16 @@ class Weather(models.Model):
 
     class Meta:
         unique_together = ('region_name', 'date')
-        db_table = 'weather_info'
+        db_table = 'mid_weather'
 
 class HourlyWeather(models.Model):
-    region_name = models.CharField(max_length=100)
+    region_name = models.CharField(max_length=50)
     date = models.DateField()
-    hour = models.IntegerField()
-    weather = models.CharField(max_length=50)
     temperature = models.FloatField()
-    precipitation = models.FloatField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    weather = models.CharField(max_length=30)
+    precipitation = models.FloatField(default=0.0)
+    hour = models.IntegerField()  
+    #created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('region_name', 'date', 'hour')
