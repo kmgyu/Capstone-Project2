@@ -155,12 +155,15 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
 - 각 작업은 아래 필드를 포함해야 합니다:
   - `task_name`: 작업 이름
   - `task_content`: 실제 작업 설명
+  - 'priority' : 작업의 우선 순위
   - `period`: 해당 작업이 걸리는 일수 (정수, 1~5일)
   - `cycle`: 반복 주기 (항상 0)
   - `start_date`: YYYY-MM-DD 형식의 시작일 (오늘부터 14일 이내)
 - 같은 작업명이 반복되어도 무방하나, 날짜(작업 기간)는 겹치지 않아야 함
 - 다른 작업명은 날짜가 겹쳐도 무관함
-- 중요도 및 실행 순서를 고려하여 작업을 배치
+- 우선순위 1: 병해충 관련 작업 및 날씨 관련 대응 (예: 방제, 살충제, 병해충, 진딧물 등)
+- 우선순위 2: 생장 및 환경관리 작업 (예: 통풍, 차광, 정지작업 등)
+- 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
 
 [판단 스텝]
 1. 입력된 월({base_date.month})을 기준으로 현재 계절을 판별합니다. 예: 3~5월 → 봄, 6~8월 → 여름
@@ -176,6 +179,7 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
   {{
     "task_name": "물주기",
     "task_content": "감자의 생장을 돕기 위해 물을 충분히 줍니다.",
+    "priority" : 2
     "period": 2,
     "cycle": 0,
     "start_date": "2025-05-15"
@@ -234,10 +238,14 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
 - 각 작업은 아래 필드를 포함해야 합니다:
   - `task_name`: 작업 이름
   - `task_content`: 구체적인 작업 설명
+  - 'priority' : 작업의 우선 순위
   - `period`: 작업 소요 기간 (1~3일 정수)
   - `cycle`: 반복 주기 (항상 0)
   - `start_date`: 오늘 날짜(YYYY-MM-DD)
 - 병해충 대응 작업이 최우선입니다. 그 외 작업은 날씨 조건이 좋을 경우 수행합니다.
+- 우선순위 1: 병해충 관련 작업 및 날씨 관련 대응 (예: 방제, 살충제, 병해충, 진딧물 등)
+- 우선순위 2: 생장 및 환경관리 작업 (예: 통풍, 차광, 정지작업 등)
+- 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
 
 [판단 스텝]
 1. 작물({field.crop_name})과 오늘 날짜({today}) 기준으로 현재 시기의 병해충 위험도를 고려합니다.
@@ -250,6 +258,7 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
   {{
     "task_name": "병해충 방제",
     "task_content": "응애 발생 위험이 있어 살충제를 사용하여 방제합니다.",
+    "priority" : 2
     "period": 1,
     "cycle": 0,
     "start_date": "2025-05-14"
@@ -298,11 +307,15 @@ def generate_monthly_tasks(user, field, keywords, base_date):
 - 모든 작업은 다음 필드를 포함해야 합니다:
   - `task_name`: 작업 이름
   - `task_content`: 작업 설명
+  - 'priority' : 작업의 우선 순위
   - `period`: 작업 소요 기간 (1~5일)
   - `cycle`: 항상 0
   - `start_date`: 작업 시작일 (YYYY-MM-DD, 오늘부터 이달 말 사이)
 - 하루에 작업이 반드시 존재할 필요는 없으며, 실질적으로 필요한 작업만 생성합니다.
 - 중요도 및 계절성을 반영하여 작업을 간격 있게 배치해야 합니다.
+- 우선순위 1: 병해충 관련 작업 및 날씨 관련 대응 (예: 방제, 살충제, 병해충, 진딧물 등)
+- 우선순위 2: 생장 및 환경관리 작업 (예: 통풍, 차광, 정지작업 등)
+- 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
 
 [판단 스텝]
 1. 월({today.month}) 기준 계절을 판별하고, 해당 작물({field.crop_name})의 일반적인 생육 단계를 추론합니다.
@@ -316,6 +329,7 @@ def generate_monthly_tasks(user, field, keywords, base_date):
   {{
     "task_name": "잡초 제거",
     "task_content": "감자 주변의 잡초를 제거하여 생육을 돕습니다.",
+    "priority" : 2
     "period": 1,
     "cycle": 0,
     "start_date": "2025-05-18"
