@@ -5,8 +5,6 @@ class Weather(models.Model):
     date = models.DateField()
     weather = models.CharField(max_length=50, default="정보없음")
     temperature_avg = models.FloatField()
-    temperature_max = models.FloatField()
-    temperature_min = models.FloatField()
     precipitation = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
 
