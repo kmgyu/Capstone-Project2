@@ -11,6 +11,7 @@ class FieldTodo(models.Model):
     field = models.ForeignKey(Field, on_delete=models.CASCADE, db_column='field_id')  # 어떤 노지의 할 일인지
     task_name = models.CharField(max_length=255)
     task_content = models.TextField(blank=True, null=True)
+    priority = models.PositiveSmallIntegerField(default=3)
     cycle = models.IntegerField(blank=True, null=True)
     start_date = models.DateTimeField()
     period = models.IntegerField(blank=True, null=True)

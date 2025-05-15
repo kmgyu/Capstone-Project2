@@ -1,12 +1,11 @@
 import datetime
 import requests
 from django.conf import settings
+from weather.models import HourlyWeather
 from weather.utils import convert_to_grid
 
-def get_ultra_short_forecast(lat, lon):
-    # 위경도를 기상청 격자 좌표로 변환
+def get_ultra_short_forecast_all(lat, lon):
     nx, ny = convert_to_grid(lat, lon)
-
     now = datetime.datetime.now()
     minute = now.minute
 
@@ -16,7 +15,6 @@ def get_ultra_short_forecast(lat, lon):
         base_time = now.replace(minute=0).strftime("%H%M")
     base_date = now.strftime("%Y%m%d")
 
-    # 기상청 API Key 가져오기
     api_key = getattr(settings, "WEATHER_API_KEY", None)
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
     params = {
@@ -37,8 +35,13 @@ def get_ultra_short_forecast(lat, lon):
         print("❌ 기상청 API 호출 오류:", e)
         return None
 
+    print(f"📦 받은 예보 item 수: {len(items)}")
+    print("✅ base_date =", base_date)
+
     result = {}
     for item in items:
+        print("🕓 예보 시각 =", item['fcstDate'], item['fcstTime'], item['category'])
+
         if item['fcstDate'] != base_date:
             continue
 
@@ -49,45 +52,64 @@ def get_ultra_short_forecast(lat, lon):
         if hour not in result:
             result[hour] = {"TMP": None, "PTY": None, "SKY": None}
 
-        if category in result[hour]:
+        if category == "T1H":  # ✅ T1H를 TMP로 간주
+            result[hour]["TMP"] = value
+        elif category in result[hour]:
             result[hour][category] = value
 
-    if not result:
-        print("❗ 예보 결과 없음")
+    cleaned = {}
+    for hour, data in result.items():
+        print(f"[디버깅] {hour}시 TMP 값:", data.get("TMP"))
+
+        try:
+            pty = int(data.get("PTY") or 0)
+        except:
+            pty = 0
+        try:
+            sky = int(data.get("SKY") or 1)
+        except:
+            sky = 1
+
+        if pty == 0:
+            weather = {1: "맑음", 3: "구름많음", 4: "흐림"}.get(sky, "맑음")
+        else:
+            weather = {1: "비", 2: "비/눈", 3: "눈", 4: "소나기"}.get(pty, "비")
+
+        tmp = data.get("TMP")
+        try:
+            temperature = float(tmp) if tmp is not None else 0.0
+        except:
+            temperature = 0.0
+
+        cleaned[hour] = {
+            "weather": weather,
+            "temperature": temperature,
+            "precipitation": 0.0
+        }
+
+    return base_date, cleaned
+
+
+def get_or_create_hourly_weather(region_name, lat, lon):
+    today = datetime.date.today()
+    queryset = HourlyWeather.objects.filter(region_name=region_name, date=today)
+    if queryset.exists():
+        return queryset
+
+    base_date, forecast_by_hour = get_ultra_short_forecast_all(lat, lon)
+    if not forecast_by_hour:
         return None
 
-    latest_hour = max(result.keys(), default=None)
-    if latest_hour is None or not result.get(latest_hour):
-        print("❗ 최신 시간대 예보 없음")
-        return None
+    for hour, data in forecast_by_hour.items():
+        HourlyWeather.objects.update_or_create(
+            region_name=region_name,
+            date=today,
+            hour=hour,
+            defaults={
+                "temperature": data["temperature"],
+                "weather": data["weather"],
+                "precipitation": data["precipitation"]
+            }
+        )
 
-    data = result[latest_hour]
-
-    # 날씨 텍스트 변환
-    try:
-        pty = int(data.get("PTY") or 0)
-    except (TypeError, ValueError):
-        pty = 0
-    try:
-        sky = int(data.get("SKY") or 1)
-    except (TypeError, ValueError):
-        sky = 1
-
-    if pty == 0:
-        weather = {1: "맑음", 3: "구름많음", 4: "흐림"}.get(sky, "맑음")
-    else:
-        weather = {1: "비", 2: "비/눈", 3: "눈", 4: "소나기"}.get(pty, "비")
-
-    # TMP가 None일 경우 대비
-    tmp = data.get("TMP")
-    try:
-        temperature = float(tmp) if tmp is not None else 0.0
-    except (TypeError, ValueError):
-        temperature = 0.0
-
-    return {
-        "date": base_date,
-        "hour": latest_hour,
-        "temperature": temperature,
-        "weather": weather
-    }
+    return HourlyWeather.objects.filter(region_name=region_name, date=today)

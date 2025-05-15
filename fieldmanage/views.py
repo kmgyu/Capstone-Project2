@@ -106,6 +106,19 @@ class GetGeometryAPIView(APIView):
         except Exception as e:
             return Response({"detail": f"서버 오류: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# ✅ Field ID와 Field Name을 묶어서 반환
+class FieldidListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        fields = Field.objects.filter(owner=user).only('field_id', 'field_name')  # 필요한 필드만 가져옴
+
+        # id와 name만 추출해서 새로운 리스트 구성
+        field_list = [{"field_id": field.field_id, "field_name": field.field_name} for field in fields]
+
+        return Response(field_list, status=status.HTTP_200_OK)
+
         
 CITY_CODES = {
     "11110": "서울특별시 종로구",   
