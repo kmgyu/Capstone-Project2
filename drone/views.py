@@ -1,59 +1,83 @@
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+# drone/views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
-from django.http import JsonResponse
-from .models import Drone
+from django.db import transaction
+from .models import Drone, Field
 from .utils import parse_drone_log
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser])
-def upload_drone_log(request):
-    user = request.user
-    log_file = request.FILES.get("log_file")
 
-    if not log_file:
-        return JsonResponse({'status': 'error', 'message': 'log_file is required'}, status=400)
+class DroneLogUploadView(APIView):
+    parser_classes = [MultiPartParser]
+    permission_classes = [IsAuthenticated]
 
-    log_content = log_file.read().decode('utf-8')
-    parsed_data = parse_drone_log(log_content)
+    # 드론 로그 업로드용 API
+    def post(self, request):
+        log_file = request.FILES.get('log_file')
 
-    drone = Drone.objects.create(
-        user=user,
-        battery=parsed_data["battery"],
-        status=parsed_data["status"],
-        latitude=parsed_data["latitude"],
-        longitude=parsed_data["longitude"]
-    )
+        if not log_file:
+            return Response({"status": "error", "message": "log_file is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    return JsonResponse({'status': 'success', 'drone_id': drone.drone_id, 'message': 'Log uploaded'})
+        try:
+            log_content = log_file.read().decode('utf-8')
+        except UnicodeDecodeError:
+            return Response({"status": "error", "message": "Failed to decode log file"}, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_drone_status_by_field(request):
-    field_id = request.GET.get('field_id')
-    if not field_id:
-        return JsonResponse({'status': 'error', 'message': 'field_id is required'}, status=400)
+        parsed_data = parse_drone_log(log_content)
 
-    try:
-        field = Field.objects.get(pk=field_id)
+        if not parsed_data:
+            return Response({"status": "error", "message": "Failed to parse log file"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                drone = Drone.objects.create(
+                    user=request.user,
+                    battery=parsed_data.get("battery"),
+                    status=parsed_data.get("status"),
+                    latitude=parsed_data.get("latitude"),
+                    longitude=parsed_data.get("longitude"),
+                )
+        except Exception as e:
+            return Response({"status": "error", "message": "Failed to save drone data"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({
+            "status": "success",
+            "drone_id": drone.drone_id,
+            "message": "Log uploaded successfully",
+        }, status=status.HTTP_201_CREATED)
+
+
+class DroneStatusByFieldView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    # 필드별 최신 드론 상태 조회용 API
+    def get(self, request):
+        field_id = request.GET.get('field_id')
+
+        if not field_id:
+            return Response({"status": "error", "message": "field_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            field = Field.objects.get(pk=field_id)
+        except Field.DoesNotExist:
+            return Response({"status": "error", "message": "Field not found"}, status=status.HTTP_404_NOT_FOUND)
+
         if field.owner != request.user:
-            return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
+            return Response({"status": "error", "message": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        # 이 필드와 연결된 사용자의 드론 중 최신 드론 상태
         drone = Drone.objects.filter(user=request.user, fields=field).order_by('-last_updated').first()
+
         if not drone:
-            return JsonResponse({'status': 'error', 'message': 'No drone linked to this field'}, status=404)
+            return Response({"status": "error", "message": "No drone linked to this field"}, status=status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse({
-            'status': 'success',
-            'drone': {
-                'battery': drone.battery,
-                'status': drone.status,
-                'latitude': drone.latitude,
-                'longitude': drone.longitude
+        return Response({
+            "status": "success",
+            "drone": {
+                "battery": drone.battery,
+                "status": drone.status,
+                "latitude": drone.latitude,
+                "longitude": drone.longitude,
             }
-        })
-
-    except Field.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Field not found'}, status=404)
+        }, status=status.HTTP_200_OK)
