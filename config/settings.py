@@ -116,21 +116,33 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME" : env("DB_NAME"),
+#         'CLIENT': {
+#             'host': env("DB_HOST"),  # MongoDB 서버 주소
+#             'username': env("DB_USER"),  # MongoDB 사용자 이름 (선택 사항)
+#             'password': env("DB_PASSWORD"),  # MongoDB 비밀번호 (선택 사항)
+#             'authSource': 'admin',  # 인증할 데이터베이스 (MongoDB 기본값: admin)
+#             # 'authMechanism': 'SCRAM-SHA-1'
+#         },
+#         'ENFORCE_SCHEMA': False,  # Djongo에서 스키마 강제 적용 방지
+#         # "USE_SQL_TRANSACTIONS": False,  # ✅ SQL 트랜잭션 비활성화
+#     }
+# }
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME" : env("DB_NAME"),
-        'CLIENT': {
-            'host': env("DB_HOST"),  # MongoDB 서버 주소
-            'username': env("DB_USER"),  # MongoDB 사용자 이름 (선택 사항)
-            'password': env("DB_PASSWORD"),  # MongoDB 비밀번호 (선택 사항)
-            'authSource': 'admin',  # 인증할 데이터베이스 (MongoDB 기본값: admin)
-            # 'authMechanism': 'SCRAM-SHA-1'
-        },
-        'ENFORCE_SCHEMA': False,  # Djongo에서 스키마 강제 적용 방지
-        # "USE_SQL_TRANSACTIONS": False,  # ✅ SQL 트랜잭션 비활성화
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': int(env('DB_PORT')),
     }
 }
+
 
 
 # Password validation
