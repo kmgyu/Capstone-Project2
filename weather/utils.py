@@ -39,4 +39,4 @@ def get_region_name_from_address(address: str) -> str:
     parts = address.split()
     if len(parts) >= 2:
         return f"{parts[0]}, {parts[1]}"
-    return address  
+    return address
