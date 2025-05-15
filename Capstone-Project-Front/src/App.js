@@ -48,7 +48,7 @@ function AppRoutes() {
     console.log('페이지 로드 시 토큰 확인');
     const token = sessionStorage.getItem('token');
     if (token) {
-      console.log('토큰 확인:', token);
+      console.log('토큰 확인');
       setIsAuthenticated(true);
       // 사용자 정보 가져오기 
       const userString = sessionStorage.getItem('user');
@@ -94,11 +94,6 @@ function AppRoutes() {
       setLoading(false);
     }
   };
-  
-  // 인터셉터 한 번만 등록
-  useEffect(() => {
-    setupAxiosInterceptors(handleInvalidToken);
-  }, []);
 
   // 라우트 변경 시 토큰 검증
   useEffect(() => {
@@ -114,16 +109,11 @@ function AppRoutes() {
       // 토큰 검증 API 호출
       console.log('토큰 검증 요청');
       const result = await authService.verifyToken();
-      console.log('토큰 검증 결과:', result);
       if (!result.valid) {
         console.log('refreshToken 요청');
         const refreshResult = await authService.refreshAccessToken();
         if (refreshResult.success) {
           console.log('새로운 토큰으로 갱신됨:', refreshResult.access);
-          // // 새 토큰으로 상태 업데이트
-          // const { access, refresh } = refreshResult;
-          // sessionStorage.setItem('token', access);
-          // sessionStorage.setItem('refreshToken', refresh);
         } else {
           // 토큰 검증 실패 시 로그아웃 처리
           console.warn('토큰 검증 실패:', result.reason);
@@ -384,7 +374,7 @@ function AppRoutes() {
     </>
   );
 
-  // 노지 관리 페이지 컴포넌트 - Todo 캘린더 추가
+  // 노지 관리 페이지 컴포넌트 
   const FarmlandPage = () => (
     <>
       <Header onLogout={handleLogout} />
@@ -400,22 +390,6 @@ function AppRoutes() {
     </>
   );
 
-  // 캘린더 전용 페이지 추가
-  const CalendarPage = () => (
-    <>
-      <Header onLogout={handleLogout} />
-      <div className={`app-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="main-content">
-          <div className="container">
-            <h1 className="page-title">작업 일정 관리</h1>
-            <TodoCalendarComponent />
-          </div>
-        </main>
-      </div>
-      <Footer />
-    </>
-  );
 
   // 드론 페이지 컴포넌트
   const DronePage = () => (
@@ -505,17 +479,6 @@ function AppRoutes() {
         }
       />
       
-      {/* 캘린더 페이지 라우트 추가 */}
-      <Route
-        path="/calendar"
-        element={
-          isAuthenticated ? (
-            <CalendarPage />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
       <Route
         path="/droneview"
         element={
@@ -534,6 +497,7 @@ function AppRoutes() {
 
 // 메인 App 컴포넌트 - Router와 전체 App 감싸기
 function App() {
+  
   return (
     <Router>
       <div className="App">

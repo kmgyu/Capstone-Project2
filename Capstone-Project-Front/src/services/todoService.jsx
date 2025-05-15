@@ -1,125 +1,165 @@
 // src/services/todoService.js
 import axios from 'axios';
 import moment from 'moment';
+import authService from './authService';
 
 // API 기본 URL 설정
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://orion.mokpo.ac.kr:8483';
 
-// Axios 인스턴스 생성
-const apiClient = axios.create({
+// Axios 인스턴스
+const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  }
+  headers: { 'Content-Type': 'application/json' }
 });
 
-// 요청 인터셉터 - 모든 요청에 토큰 추가
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = sessionStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+/**
+ * 인증 토큰을 검증 및 갱신하고, 요청 헤더를 반환합니다.
+ */
+async function getAuthHeaders() {
+  let token = authService.getAccessToken();
+  if (!token) return {};
+
+  // 토큰 검증
+  const verification = await authService.verifyToken();
+  if (!verification.valid) {
+    const refreshResult = await authService.refreshAccessToken();
+    if (refreshResult.success) {
+      token = refreshResult.access;
+    } else {
+      authService.clearTokens();
+      throw new Error('유효한 토큰이 없습니다.');
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
+
+  return { Authorization: `Bearer ${token}` };
+}
 
 const todoService = {
-  // 사용자의 모든 Todo 가져오기
-  getUserTodos: async (userId) => {
+  /**
+   * 사용자 노지 전체 할 일 조회 (기간 필터도 가능)
+   */
+  getAllTodos: async (start, end) => {
     try {
-      const response = await apiClient.get(`/todo/todos/user/`, {
-        params: { owner_id: userId }
+      const headers = await getAuthHeaders();
+      const params = {};
+      if (start) params.start = start;
+      if (end) params.end = end;
+      const response = await api.get('/todo/todos/all/', { params, headers });
+      return response.data;
+    } catch (error) {
+      console.error('전체 할 일 조회 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 특정 필드의 할 일 목록 조회 **/
+  getTodos: async (fieldId, start, end) => {
+    try {
+      const headers = await getAuthHeaders();
+      const params = {};
+      if (start) params.start = start;
+      if (end) params.end = end;
+      const url = `/todo/todos/${fieldId}/list/`;
+      const response = await api.get(url, { params, headers });
+      return response.data;
+    } catch (error) {
+      console.error('필드 할 일 조회 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 특정 할 일 상세 조회 **/
+  getTodo: async (taskId) => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await api.get(`/todo/todos/task/${taskId}/`, { headers });
+      return response.data;
+    } catch (error) {
+      console.error('할 일 상세 조회 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 새 할 일 생성 **/
+  createTodo: async (fieldId, todoData) => {
+    try {
+      const headers = await getAuthHeaders();
+      const url = fieldId !== null ? `/todo/todos/${fieldId}/list/` : '/todo/todos/all/';
+      const response = await api.post(url, todoData, { headers });
+      return response.data;
+    } catch (error) {
+      console.error('할 일 생성 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 할 일 수정 **/
+  updateTodo: async (taskId, updates) => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await api.patch(`/todo/todos/task/${taskId}/`, updates, { headers });
+      return response.data;
+    } catch (error) {
+      console.error('할 일 수정 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 할 일 삭제 **/
+  deleteTodo: async (taskId) => {
+    try {
+      const headers = await getAuthHeaders();
+      await api.delete(`/todo/todos/task/${taskId}/`, { headers });
+      return true;
+    } catch (error) {
+      console.error('할 일 삭제 오류:', error);
+      throw error;
+    }
+  },
+
+  /** 월간 할 일 조회 **/
+  getMonthlyTodos: async (fieldId, year, month) => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await api.get(`/todo/todos/monthly/${fieldId}/`, {
+        params: { year, month },
+        headers
       });
       return response.data;
     } catch (error) {
-      console.error('사용자 Todo 가져오기 오류:', error);
+      console.error('월간 할 일 조회 오류:', error);
       throw error;
     }
   },
-  
-  // 특정 필드의 Todo 가져오기
-  getFieldTodos: async (fieldId) => {
+
+  /** 진행도 업데이트 **/
+  updateProgress: async (taskId, progresses) => {
     try {
-      const response = await apiClient.get(`/todo/todos/field/${fieldId}/`);
+      const headers = await getAuthHeaders();
+      const response = await api.patch(`/todo/progress/${taskId}/`, { progresses }, { headers });
       return response.data;
     } catch (error) {
-      console.error('필드 Todo 가져오기 오류:', error);
+      console.error('진행도 업데이트 오류:', error);
       throw error;
     }
   },
-  
-  // 새 Todo 생성
-  createTodo: async (fieldId, todoData) => {
-    try {
-      const response = await apiClient.post(`/todo/todos/field/${fieldId}/`, todoData);
-      return response.data;
-    } catch (error) {
-      console.error('Todo 생성 오류:', error);
-      throw error;
-    }
-  },
-  
-  // 특정 Todo 가져오기
-  getTodo: async (todoId) => {
-    try {
-      const response = await apiClient.get(`/todo/todos/task/${todoId}/`);
-      return response.data;
-    } catch (error) {
-      console.error('Todo 상세 가져오기 오류:', error);
-      throw error;
-    }
-  },
-  
-  // Todo 수정
-  updateTodo: async (todoId, todoData) => {
-    try {
-      const response = await apiClient.put(`/todo/todos/task/${todoId}/`, todoData);
-      return response.data;
-    } catch (error) {
-      console.error('Todo 수정 오류:', error);
-      throw error;
-    }
-  },
-  
-  // Todo 삭제
-  deleteTodo: async (todoId) => {
-    try {
-      await apiClient.delete(`/todo/todos/task/${todoId}/`);
-      return true;
-    } catch (error) {
-      console.error('Todo 삭제 오류:', error);
-      throw error;
-    }
-  },
-  
-  // API 응답 데이터를 캘린더 형식으로 변환
+
+  /** 캘린더용 포맷 변환 **/
   formatTodosForCalendar: (todos) => {
-    if (!Array.isArray(todos)) {
-      console.error('formatTodosForCalendar: todos is not an array', todos);
-      return [];
-    }
-    
+    if (!Array.isArray(todos)) return [];
     return todos.map(todo => {
-      // 백엔드 응답 형식에 맞게 필드명 매핑
-      const startDate = moment(todo.start_date).format('YYYY-MM-DD');
-      const endDate = moment(todo.start_date)
-        .add(todo.period - 1, 'days')
-        .format('YYYY-MM-DD');
-      
+      const start = moment(todo.start_date).format('YYYY-MM-DD');
+      const end = moment(todo.start_date).add(todo.period - 1, 'days').format('YYYY-MM-DD');
       return {
         id: todo.task_id,
         title: todo.task_name,
         content: todo.task_content,
         type: todo.is_pest ? 'pest' : 'farming',
-        start: startDate,
-        end: endDate,
+        start,
+        end,
         field: todo.field,
-        color: todo.is_pest ? '#e57373' : '#4d8b31', // 병충해는 빨간색, 농사는 녹색
-        completed: false // 백엔드에서 완료 상태를 제공하지 않으므로 기본값 false
+        color: todo.is_pest ? '#e57373' : '#4d8b31',
+        completed: false
       };
     });
   }

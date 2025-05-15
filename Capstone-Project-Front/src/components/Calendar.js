@@ -1,23 +1,32 @@
 // src/components/Calendar.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import moment from 'moment';
 import 'moment/locale/ko';
 import '../css/Calendar.css';
 
-const Calendar = ({ selectedDate, onDateSelect, schedules, onMonthChange }) => {
-  const [currentDate, setCurrentDate] = useState(moment());
+const Calendar = ({ 
+  selectedDate, 
+  onDateSelect, 
+  schedules, 
+  onMonthChange, 
+  onPrevMonth,
+  onNextMonth,
+  currentYearMonth
+}) => {
+  // currentYearMonth에서 year와 month를 추출
+  const [year, month] = currentYearMonth.split('-').map(Number);
+  const currentMoment = moment(currentYearMonth, 'YYYY-MM');
   
-  // 월이 변경될 때마다 일정 데이터 가져오기
+  // 월이 변경될 때마다 콜백 호출
   useEffect(() => {
-    const year = currentDate.year();
-    const month = currentDate.month() + 1; // moment는 0부터 시작
+    // 년도와 월을 전달하여 대시보드에 알림
     onMonthChange(year, month);
-  }, [currentDate, onMonthChange]);
+  }, [year, month, onMonthChange]);
   
   // 캘린더 데이터 생성 (월별 날짜 배열)
   const generateCalendarDays = () => {
-    const firstDay = moment(currentDate).startOf('month');
-    const lastDay = moment(currentDate).endOf('month');
+    const firstDay = currentMoment.clone().startOf('month');
+    const lastDay = currentMoment.clone().endOf('month');
     
     // 이전 달의 마지막 몇 일 계산 (첫째 주 빈칸 채우기)
     const prevMonthDays = firstDay.day();
@@ -40,7 +49,7 @@ const Calendar = ({ selectedDate, onDateSelect, schedules, onMonthChange }) => {
     
     // 현재 달의 날짜 추가 - 이벤트 처리 개선
     for (let i = 1; i <= daysInMonth; i++) {
-      const date = moment(currentDate).date(i);
+      const date = moment(currentMoment).date(i);
       const dateStr = date.format('YYYY-MM-DD');
       
       // 해당 날짜의 일정 찾기
@@ -96,14 +105,14 @@ const Calendar = ({ selectedDate, onDateSelect, schedules, onMonthChange }) => {
     return calendarDays;
   };
   
-  // 이전 달로 이동
-  const goToPrevMonth = () => {
-    setCurrentDate(moment(currentDate).subtract(1, 'month'));
+  // 이전 달로 이동 - 대시보드 핸들러 호출
+  const handlePrevMonth = () => {
+    onPrevMonth();
   };
-  
-  // 다음 달로 이동
-  const goToNextMonth = () => {
-    setCurrentDate(moment(currentDate).add(1, 'month'));
+
+  // 다음 달로 이동 - 대시보드 핸들러 호출
+  const handleNextMonth = () => {
+    onNextMonth();
   };
   
   // 날짜 선택 처리
@@ -244,11 +253,11 @@ const Calendar = ({ selectedDate, onDateSelect, schedules, onMonthChange }) => {
       <h3 className="section-title">작업 캘린더</h3>
       <div className="calendar-header">
         <div className="calendar-title" id="calendar-month-year">
-          {currentDate.format('YYYY년 M월')}
+          {currentMoment.format('YYYY년 M월')}
         </div>
         <div className="calendar-nav">
-          <button className="nav-button" onClick={goToPrevMonth}>이전</button>
-          <button className="nav-button" onClick={goToNextMonth}>다음</button>
+          <button className="nav-button" onClick={handlePrevMonth}>이전</button>
+          <button className="nav-button" onClick={handleNextMonth}>다음</button>
         </div>
       </div>
       <div className="calendar-grid" id="calendar-weekdays">

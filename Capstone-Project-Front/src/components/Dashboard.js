@@ -5,6 +5,7 @@ import TodoModal from './TodoModal';
 import todoService from '../services/todoService';
 import '../css/Dashboard.css';
 import moment from 'moment';
+import 'moment/locale/ko';
 
 const Dashboard = () => {
   // 상태 관리
@@ -14,6 +15,9 @@ const Dashboard = () => {
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [currentYearMonth, setCurrentYearMonth] = useState(moment().format('YYYY-MM'));
   const previousYearMonth = useRef('');
   
   // 사용자 ID (실제로는 로그인 상태에서 가져와야 함)
@@ -22,20 +26,17 @@ const Dashboard = () => {
   const userId = user?.id;
   
   // 데이터 로드 함수
-  const loadSchedules = useCallback(async () => {
+  const loadSchedules = useCallback(async (start, end) => {
+    console.log('일정 데이터 로드:', start, end);
     setLoading(true);
     setError(null);
-    
+
     try {
-      // 실제 API 호출
-      const userTodos = await todoService.getUserTodos(userId);
+      const userTodos = await todoService.getAllTodos(start, end);
       const formattedTodos = todoService.formatTodosForCalendar(userTodos);
       setSchedules(formattedTodos);
-      
-      // 선택된 날짜에 맞게 필터링
       filterSchedulesByDate(formattedTodos, selectedDate);
     } catch (error) {
-      console.error('dashboard', error);
       console.error('일정 데이터 로드 오류:', error);
       setError('일정을 불러오는 중 오류가 발생했습니다.');
       setSchedules([]);
@@ -43,13 +44,22 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, selectedDate]);
+  }, [selectedDate]);
   
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
-    loadSchedules();
-  }, [loadSchedules]);
-  
+    const [year, month] = currentYearMonth.split('-').map(Number);
+    const now = moment([year, month - 1]);
+
+    const firstDate = now.clone().startOf('month').startOf('week').format('YYYY-MM-DD');
+    const lastDate = now.clone().endOf('month').endOf('week').format('YYYY-MM-DD');
+
+    setStartDate(firstDate);
+    setEndDate(lastDate);
+
+    loadSchedules(firstDate, lastDate);
+  }, [currentYearMonth, loadSchedules]); // currentYearMonth를 의존성 배열로 관리
+    
   // 날짜에 맞게 일정 필터링
   const filterSchedulesByDate = (allSchedules, date) => {
     const filtered = allSchedules.filter(schedule => {
@@ -76,16 +86,26 @@ const Dashboard = () => {
     setIsTodoModalOpen(false);
   };
   
-  // 월 변경 핸들러
-  const fetchMonthSchedules = useCallback(async (year, month) => {
-    // 이전에 호출했던 연/월과 같으면 재호출 방지
-    const yearMonthKey = `${year}-${month}`;
-    if (previousYearMonth.current === yearMonthKey) return;
-    previousYearMonth.current = yearMonthKey;
-    
-    // 데이터 다시 로드
-    await loadSchedules();
-  }, [loadSchedules]);
+  // 월 변경 핸들러 (Calendar에서 호출)
+  const handleMonthChange = useCallback((year, month) => {
+    console.log(`월 변경됨: ${year}-${month}`);
+    const formattedMonth = month.toString().padStart(2, '0');
+    const newYearMonth = `${year}-${formattedMonth}`;
+
+    setCurrentYearMonth(newYearMonth);
+  }, []);
+  
+  // 이전 달로 이동 핸들러 (Calendar에서 호출)
+  const handlePrevMonth = useCallback(() => {
+    console.log("이전 달로 이동");
+    setCurrentYearMonth(moment(currentYearMonth, 'YYYY-MM').subtract(1, 'month').format('YYYY-MM'));
+  }, [currentYearMonth]);
+  
+  // 다음 달로 이동 핸들러 (Calendar에서 호출)
+  const handleNextMonth = useCallback(() => {
+    console.log("다음 달로 이동");
+    setCurrentYearMonth(moment(currentYearMonth, 'YYYY-MM').add(1, 'month').format('YYYY-MM'));
+  }, [currentYearMonth]);
   
   // 일정 추가 핸들러
   const addSchedule = useCallback(async (newScheduleData) => {
@@ -176,7 +196,10 @@ const Dashboard = () => {
                 selectedDate={selectedDate}
                 onDateSelect={handleDateSelect}
                 schedules={schedules}
-                onMonthChange={fetchMonthSchedules}
+                onMonthChange={handleMonthChange}
+                onPrevMonth={handlePrevMonth}
+                onNextMonth={handleNextMonth}
+                currentYearMonth={currentYearMonth}
               />
             )}
           </div>

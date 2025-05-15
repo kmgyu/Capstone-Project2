@@ -280,9 +280,9 @@
   
   /* 반응형 디자인 */
   @media (min-width: 768px) {
-    .modal-content {
+    /* .modal-content {
       flex-direction: row;
-    }
+    } */
     
     .map-container {
       flex: 3;
