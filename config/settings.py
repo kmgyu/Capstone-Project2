@@ -34,7 +34,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #SECRET_KEY = env('SECRET_KEY')
 
 SECRET_KEY = env('SECRET_KEY',default='django-insecure-44des16f%3n65fb5ml9w^q35pxjqq@x1&u+z@)^*t17l)m-fkk')
-
+# ✅ API KEY (기상청만 사용)
+WEATHER_API_KEY = env("WEATHER_API_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
@@ -51,6 +52,8 @@ CUSTOM_APPS = [
     'accounts',
     #멀티파트
     'multipart_picture',
+    'weather',  # ← ✅ 이거 추가하세요!
+
 ]
 
 THIRD_PARTY_APPS = [
@@ -63,7 +66,9 @@ THIRD_PARTY_APPS = [
     
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_celery_beat',
 ]
 
 INSTALLED_APPS = CUSTOM_APPS + THIRD_PARTY_APPS
@@ -152,7 +157,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
@@ -203,9 +208,15 @@ CORS_ORIGIN_WHITELIST = (
     "http://orion.mokpo.ac.kr:8487",
 )
 
-# 이미지 저장 경로 지정
-MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/Capstone-Project2/storage'
+
 
 # GPT API 키
 OPENAI_API_KEY = env("OPENAI_API_KEY")
+# VWORLD_API 키
+VWORLD_API_KEY = os.getenv('VWORLD_API_KEY')
+
+# Celery + Redis 설정
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

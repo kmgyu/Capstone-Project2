@@ -60,3 +60,13 @@ db = client["admin"]
 print(db.list_collection_names())  # 데이터베이스 목록 출력
 
 ```
+
+# Docker 이미지 빌드
+sudo docker compose build
+
+# Docker Compose로 컨테이너 실행
+sudo docker-compose up -d
+
+# Redis-server 켜는 법
+service redis-server start
+
