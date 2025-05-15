@@ -107,7 +107,7 @@ class GetGeometryAPIView(APIView):
             return Response({"detail": f"서버 오류: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # ✅ Field ID와 Field Name을 묶어서 반환
-class FieldIdListAPIView(APIView):
+class FieldidListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
