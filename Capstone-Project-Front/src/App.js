@@ -20,8 +20,7 @@ import DroneView from './components/DroneView'; // 드론 뷰 컴포넌트
 import './css/App.css';
 import './css/AuthStyles.css';
 import authService from './services/authService';
-import { setupAxiosInterceptors } from './services/axiosInterceptor';
-
+import fieldService from './services/fieldService'; // 필드 API 서비스
 // Router hooks를 사용하는 별도의 컴포넌트
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,18 +43,37 @@ function AppRoutes() {
 
   // 페이지 로드 시 인증 상태 확인
   useEffect(() => {
-    // sessionStorage에서 토큰 확인
-    console.log('페이지 로드 시 토큰 확인');
-    const token = sessionStorage.getItem('token');
-    if (token) {
-      console.log('토큰 확인');
-      setIsAuthenticated(true);
-      // 사용자 정보 가져오기 
-      const userString = sessionStorage.getItem('user');
-      const user = userString ? JSON.parse(userString) : null;
-      setUserData(user);
-    }
-  }, []);
+    const checkAuthAndLoadFields = async () => {
+      console.log('페이지 로드 시 토큰 확인');
+      const token = sessionStorage.getItem('token');
+      if (token) {
+        console.log('토큰 확인');
+        setIsAuthenticated(true);
+
+        const userString = sessionStorage.getItem('user');
+        const user = userString ? JSON.parse(userString) : null;
+        setUserData(user);
+
+        const mainField = sessionStorage.getItem('main_field');
+        if (!mainField) {
+          console.log('필드확인');
+          try {
+            const field_all = await fieldService.getAllFields();
+            if (field_all && field_all.length > 0) {
+              sessionStorage.setItem('main_field', field_all[0].field_id);
+              sessionStorage.setItem('field_all', JSON.stringify(field_all));
+            } else {
+              console.warn('받은 농지 목록이 비어 있습니다.');
+            }
+          } catch (error) {
+            console.error('농지 목록 불러오기 실패:', error);
+          }
+        }
+      }
+    };
+
+    checkAuthAndLoadFields();
+  }, [isAuthenticated]);
 
   // 인증 상태가 변경될 때 Todo 데이터 로드
   useEffect(() => {
@@ -152,6 +170,7 @@ function AppRoutes() {
     sessionStorage.setItem('user', JSON.stringify(user));
     sessionStorage.setItem('username', user.username);
     
+
     setIsAuthenticated(true);
     setUserData(user);
   };
