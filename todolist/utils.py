@@ -12,7 +12,7 @@ def create_task_progress_entries(task: FieldTodo):
     if not task.start_date or not task.period:
         return
 
-    for i in range(task.period):
+    for i in range(0, task.period):
         date = (task.start_date + timedelta(days=i)).date()
         TaskProgress.objects.get_or_create(
             task_id=task,
@@ -63,59 +63,50 @@ okt = Okt()
 
 def expand_tasks_by_date(todos):
     """
-    FieldTodo 리스트를 날짜별로 확장
-    예: period=3이면 start_date 기준으로 3일치 각 날짜에 포함시킴
+    모든 FieldTodo를 날짜별로 확장
+    period=3이면 start_date부터 3일간 반복해서 해당 날짜에 추가
     """
     date_map = defaultdict(list)
     for task in todos:
         for i in range(task.period or 1):
-            day = (task.start_date.date() + timedelta(days=i))
+            day = task.start_date.date() + timedelta(days=i)
             date_map[day].append(task)
     return date_map
 
 
 def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
     final_result = []
-    task_history = defaultdict(list)  # 날짜별 유사 그룹 추적
 
-    sorted_dates = sorted(date_map.keys())
-
-    for i, date in enumerate(sorted_dates):
+    for date in sorted(date_map.keys()):
         tasks = date_map[date]
-        seen_clusters = []
+        texts = [t.task_name for t in tasks]
 
-        for task in sorted(tasks, key=lambda x: (x.priority, -x.period)):
-            text1 = f"{task.task_name} {task.task_content or ''}"
+        vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None, ngram_range=(1, 2))
+        tfidf_matrix = vectorizer.fit_transform(texts)
+        sim_matrix = cosine_similarity(tfidf_matrix)
 
-            # 유사 그룹 체크
-            is_dup = False
-            for prev in seen_clusters:
-                sim = cosine_similarity(
-                    TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None).fit_transform([text1, prev])
-                )[0, 1]
-                if sim >= threshold:
-                    is_dup = True
-                    break
+        used = [False] * len(tasks)
+        kept = []
 
-            # ✅ 전날에도 같은 유사 그룹 있었는지 확인
-            if i > 0:
-                prev_date = sorted_dates[i - 1]
-                for prev_text in task_history[prev_date]:
-                    sim = cosine_similarity(
-                        TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None).fit_transform([text1, prev_text])
-                    )[0, 1]
-                    if sim >= threshold:
-                        is_dup = True
-                        break
+        for i in range(len(tasks)):
+            if used[i]:
+                continue
+            base_task = tasks[i]
+            kept.append(base_task)
+            used[i] = True
 
-            if not is_dup:
-                seen_clusters.append(text1)
-                task_history[date].append(text1)
-                serialized = FieldTodoSerializer(task).data
-                serialized["date"] = str(date)
-                final_result.append(serialized)
+            for j in range(i + 1, len(tasks)):
+                if not used[j]:
+                    print(f"→ [{date}] '{texts[i]}' vs '{texts[j]}' = {sim_matrix[i][j]:.4f}")
+                    if sim_matrix[i][j] >= threshold:
+                        used[j] = True
 
-            if len(seen_clusters) >= max_per_day:
+            if len(kept) >= max_per_day:
                 break
+
+        for task in kept:
+            serialized = FieldTodoSerializer(task).data
+            serialized["date"] = str(date)
+            final_result.append(serialized)
 
     return final_result

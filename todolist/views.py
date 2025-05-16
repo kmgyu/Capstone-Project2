@@ -2,7 +2,7 @@ import calendar
 from django.utils.timezone import make_aware
 from datetime import datetime
 
-from .utils import expand_tasks_by_date, deduplicate_tasks_per_day
+from .utils import create_task_progress_entries, expand_tasks_by_date, deduplicate_tasks_per_day
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,7 +15,7 @@ from datetime import timedelta
 from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
 from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
-from .utils import create_task_progress_entries
+
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -126,7 +126,6 @@ class AllFieldTodosAPIView(APIView):
         # 날짜별로 확장 및 유사 중복 제거
         date_map = expand_tasks_by_date(todos)
         final_result = deduplicate_tasks_per_day(date_map)
-
         return Response(final_result)
     
 # 특정 날의 사용자가 소유한 모든 노지의 할 일을 조회
