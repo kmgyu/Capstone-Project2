@@ -84,8 +84,7 @@ const todoService = {
   createTodo: async (fieldId, todoData) => {
     try {
       const headers = await getAuthHeaders();
-      const url = fieldId !== null ? `/todo/todos/${fieldId}/list/` : '/todo/todos/all/';
-      const response = await api.post(url, todoData, { headers });
+      const response = await api.post(`/todo/todos/${fieldId}/list/`, todoData, { headers });
       return response.data;
     } catch (error) {
       console.error('할 일 생성 오류:', error);

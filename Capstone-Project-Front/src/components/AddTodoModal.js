@@ -1,11 +1,12 @@
 // src/components/AddTodoModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import moment from 'moment';
 import 'moment/locale/ko';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarPlus } from '@fortawesome/free-solid-svg-icons';
 import '../css/AddTodoModal.css';
+import todoService from '../services/todoService';
 
 const AddTodoModal = ({ 
   isOpen, 
@@ -22,7 +23,17 @@ const AddTodoModal = ({
     content: '',
     startDate: date || new Date().toISOString().split('T')[0],
     period: 1, // 기본 기간 (일)
+    fieldId: '', // 노지 ID 추가
   });
+  
+  // 노지 목록 상태
+  const [fields, setFields] = useState([]);
+  
+  // 컴포넌트 마운트 시 세션 스토리지에서 노지 데이터를 가져옴
+  useEffect(() => {
+    const fieldsData = JSON.parse(sessionStorage.getItem('field_all')) || [];
+    setFields(fieldsData);
+  }, []);
   
   // 종료일은 시작일 + 기간으로 자동 계산
   const calculatedEndDate = newTodoState.startDate 
@@ -40,29 +51,36 @@ const AddTodoModal = ({
     }));
   };
   
+  // 노지 선택되었는지 확인
+  const isFieldSelected = Boolean(newTodoState.fieldId);
+  
   // 일정 추가 핸들러
-  const handleAddTodo = (e) => {
+  const handleAddTodo = async (e) => {
     e.preventDefault();
-    
-    if (typeof onAddTodo !== 'function') {
-      console.error('onAddTodo 함수가 없습니다');
-      return;
-    }
-    
+
     if (newTodoState.title.trim()) {
-      // 추가할 할 일 데이터 구성 - 항상 타입은 farming(농사)로 설정
-      const newTodo = {
-        title: newTodoState.title.trim(),
-        content: newTodoState.content.trim(),
-        type: 'farming', // 항상 농사 작업으로 설정
-        start: newTodoState.startDate,
-        end: calculatedEndDate, // 계산된 종료일 사용
-        period: parseInt(newTodoState.period) || 1,
-        color: '#4d8b31', // 농사 작업은 초록색 (앱 테마 색상)
-        completed: false
-      };
-      
-      onAddTodo(newTodo);
+      try {
+        const selectedField = fields.find(field => field.field_id.toString() === newTodoState.fieldId.toString());
+        const startDateISO = moment(newTodoState.startDate).format('YYYY-MM-DDT00:00:00');
+        
+        const todoData = {
+          task_name: newTodoState.title.trim(),
+          task_content: newTodoState.content.trim(),
+          start_date: startDateISO,
+          period: parseInt(newTodoState.period) || 1,
+          field_id: newTodoState.fieldId,
+          field_name: selectedField ? selectedField.field_name : '',
+        };
+
+        // const fieldId = newTodoState.fieldId;
+
+        // const createdTodo = await todoService.createTodo(fieldId, todoData);
+
+        onAddTodo(todoData); // 부모 컴포넌트에 추가된 일정 전달
+        onClose();  // 모달 닫기
+      } catch (error) {
+        alert('할 일 추가 중 오류가 발생했습니다.');
+      }
     }
   };
   
@@ -82,8 +100,31 @@ const AddTodoModal = ({
       <div className="add-todo-modal-content">
         {/* 일정 추가 폼 */}
         <form className="add-todo-form" onSubmit={handleAddTodo}>
+          {/* 노지 선택 콤보 박스 */}
           <div className="form-group">
-            <label htmlFor="todoTitle">할 일 제목</label>
+            <label htmlFor="fieldSelect">작업할 노지 선택<span className="required-mark">*</span></label>
+            <select
+              id="fieldSelect"
+              name="fieldId"
+              className={`field-select ${!isFieldSelected ? 'field-required' : ''}`}
+              value={newTodoState.fieldId}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">노지를 선택하세요</option>
+              {fields.map(field => (
+                <option key={field.field_id} value={field.field_id}>
+                  {field.field_name}
+                </option>
+              ))}
+            </select>
+            {!isFieldSelected && (
+              <p className="field-error-message">작업할 노지를 선택해야 합니다</p>
+            )}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="todoTitle">할 일 제목<span className="required-mark">*</span></label>
             <input 
               type="text" 
               id="todoTitle"
@@ -146,7 +187,13 @@ const AddTodoModal = ({
           
           <div className="form-actions">
             <button type="button" className="cancel-button" onClick={onClose}>취소</button>
-            <button type="submit" className="submit-button">추가</button>
+            <button 
+              type="submit" 
+              className="submit-button"
+              disabled={!isFieldSelected || !newTodoState.title.trim() }
+            >
+              추가
+            </button>
           </div>
         </form>
       </div>

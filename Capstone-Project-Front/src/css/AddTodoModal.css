@@ -1,209 +1,279 @@
 /* src/css/AddTodoModal.css */
 
 .add-todo-modal {
-    overflow: hidden;
-    max-width: 550px;
-    width: 100%;
+  max-width: 550px;
+  width: 100%;
+  max-height: 90vh; /* 화면 높이의 90%로 제한 */
+  display: flex;
+  flex-direction: column;
+}
+
+.add-todo-modal .modal-header {
+  background-color: var(--primary-color); /* 앱 기본 테마 색상 사용 */
+  color: var(--white-color);
+  border-radius: 8px 8px 0 0;
+  padding: 15px 20px;
+}
+
+.add-todo-modal .modal-title {
+  color: var(--white-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.add-todo-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-icon {
+  font-size: 1.3em;
+}
+
+.selected-date {
+  font-size: 0.9em;
+  opacity: 0.9;
+  margin-left: 5px;
+}
+
+.add-todo-modal-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background-color: var(--white-color);
+  overflow-y: auto; /* 세로 스크롤 추가 */
+  max-height: calc(90vh - 60px); /* 헤더 높이(대략 60px)를 뺀 높이 */
+}
+
+/* 일정 추가 폼 */
+.add-todo-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 15px;
+}
+
+.required-mark {
+  color: #e74c3c;
+  margin-left: 3px;
+}
+
+.todo-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: var(--transition);
+  background-color: var(--light-color);
+}
+
+.todo-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
+  outline: none;
+  background-color: var(--white-color);
+}
+
+.todo-textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  resize: vertical;
+  min-height: 100px;
+  transition: var(--transition);
+  background-color: var(--light-color);
+}
+
+.todo-textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
+  outline: none;
+  background-color: var(--white-color);
+}
+
+/* 노지 선택 콤보 박스 스타일 */
+.field-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: var(--light-color);
+  transition: var(--transition);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8.825L1.175 4 2.238 2.938 6 6.7 9.763 2.938 10.825 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 40px;
+}
+
+.field-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
+  outline: none;
+  background-color: var(--white-color);
+}
+
+.field-required {
+  border-color: #e74c3c;
+}
+
+.field-error-message {
+  color: #e74c3c;
+  font-size: 13px;
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+/* 날짜 관련 옵션 그리드 */
+.date-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.date-options .form-group:last-child {
+  grid-column: span 2; /* 종료일 필드는 두 칸 차지 */
+}
+
+.date-options input[type="date"],
+.date-options input[type="number"] {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: var(--light-color);
+  transition: var(--transition);
+}
+
+.date-options input[type="date"]:focus,
+.date-options input[type="number"]:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
+  outline: none;
+  background-color: var(--white-color);
+}
+
+.disabled-input {
+  background-color: #f5f5f5 !important;
+  color: #777;
+  cursor: not-allowed;
+  border: 1px solid #ddd;
+}
+
+/* 폼 액션 버튼 */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.cancel-button {
+  background-color: #f5f5f5;
+  color: var(--text-color);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.cancel-button:hover {
+  background-color: #e0e0e0;
+}
+
+.submit-button {
+  background-color: var(--primary-color);
+  color: var(--white-color);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+
+.submit-button:hover:not([disabled]) {
+  background-color: var(--dark-color);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.submit-button:active:not([disabled]) {
+  transform: translateY(0);
+}
+
+.submit-button:disabled {
+  background-color: #cccccc;
+  color: #888888;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* 스크롤바 스타일링 - 웹킷 기반 브라우저(Chrome, Safari 등) */
+.add-todo-modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.add-todo-modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.add-todo-modal-content::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  opacity: 0.7;
+  border-radius: 4px;
+}
+
+.add-todo-modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-color);
+}
+@media (max-width: 768px) {
+  .add-todo-modal {
+    max-width: 100%;
+    margin: 0 10px;
   }
   
-  .add-todo-modal .modal-header {
-    background-color: var(--primary-color); /* 앱 기본 테마 색상 사용 */
-    color: var(--white-color);
-    border-radius: 8px 8px 0 0;
-    padding: 15px 20px;
-  }
-  
-  .add-todo-modal .modal-title {
-    color: var(--white-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 18px;
-  }
-  
-  .add-todo-modal-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .add-icon {
-    font-size: 1.3em;
-  }
-  
-  .selected-date {
-    font-size: 0.9em;
-    opacity: 0.9;
-    margin-left: 5px;
-  }
-  
-  .add-todo-modal-content {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    background-color: var(--white-color);
-  }
-  
-  /* 일정 추가 폼 */
-  .add-todo-form {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .form-group {
-    margin-bottom: 20px;
-  }
-  
-  .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--text-color);
-    font-size: 15px;
-  }
-  
-  .todo-input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: var(--transition);
-    background-color: var(--light-color);
-  }
-  
-  .todo-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
-    outline: none;
-    background-color: var(--white-color);
-  }
-  
-  .todo-textarea {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
-    resize: vertical;
-    min-height: 100px;
-    transition: var(--transition);
-    background-color: var(--light-color);
-  }
-  
-  .todo-textarea:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
-    outline: none;
-    background-color: var(--white-color);
-  }
-  
-  /* 날짜 관련 옵션 그리드 */
   .date-options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 20px;
+    grid-template-columns: 1fr;
   }
   
   .date-options .form-group:last-child {
-    grid-column: span 2; /* 종료일 필드는 두 칸 차지 */
+    grid-column: 1;
   }
   
-  .date-options input[type="date"],
-  .date-options input[type="number"] {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
-    background-color: var(--light-color);
-    transition: var(--transition);
-  }
-  
-  .date-options input[type="date"]:focus,
-  .date-options input[type="number"]:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(77, 139, 49, 0.2);
-    outline: none;
-    background-color: var(--white-color);
-  }
-  
-  .disabled-input {
-    background-color: #f5f5f5 !important;
-    color: #777;
-    cursor: not-allowed;
-    border: 1px solid #ddd;
-  }
-  
-  /* 폼 액션 버튼 */
   .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 10px;
+    flex-direction: column;
   }
   
-  .cancel-button {
-    background-color: #f5f5f5;
-    color: var(--text-color);
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-  }
-  
-  .cancel-button:hover {
-    background-color: #e0e0e0;
-  }
-  
+  .cancel-button,
   .submit-button {
-    background-color: var(--primary-color);
-    color: var(--white-color);
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-    box-shadow: var(--shadow);
+    width: 100%;
+    margin-bottom: 10px;
   }
-  
-  .submit-button:hover {
-    background-color: var(--dark-color);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-  }
-  
-  .submit-button:active {
-    transform: translateY(0);
-  }
-  
-  /* 반응형 스타일 */
-  @media (max-width: 768px) {
-    .add-todo-modal {
-      max-width: 100%;
-      margin: 0 10px;
-    }
-    
-    .date-options {
-      grid-template-columns: 1fr;
-    }
-    
-    .date-options .form-group:last-child {
-      grid-column: 1;
-    }
-    
-    .form-actions {
-      flex-direction: column;
-    }
-    
-    .cancel-button,
-    .submit-button {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-  }
+}

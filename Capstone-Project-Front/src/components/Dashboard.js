@@ -33,7 +33,9 @@ const Dashboard = () => {
 
     try {
       const userTodos = await todoService.getAllTodos(start, end);
+      console.log('원본 데이터', userTodos);
       const formattedTodos = todoService.formatTodosForCalendar(userTodos);
+      console.log('형식 변환된 일정:', formattedTodos);
       setSchedules(formattedTodos);
       filterSchedulesByDate(formattedTodos, selectedDate);
     } catch (error) {
@@ -113,16 +115,13 @@ const Dashboard = () => {
       setLoading(true);
       
       // 필드 ID는 예시로 첫 번째 필드 사용 (실제로는 선택된 필드 ID 사용)
-      const fieldId = 22; // 백엔드 문서에 있는 필드 ID 사용
-      
-      // 백엔드 형식에 맞게 데이터 변환
+      // 백엔드 문서에 있는 필드 ID 사용
+      const fieldId = newScheduleData.field_id;
       const backendTodoData = {
-        task_name: newScheduleData.title,
-        task_content: newScheduleData.content || newScheduleData.title,
-        cycle: 7, // 기본값
-        start_date: new Date(newScheduleData.start).toISOString(),
-        period: parseInt(newScheduleData.period) || 1, // 작업 기간
-        is_pest: newScheduleData.type === 'pest' // 농사 작업/병충해 구분
+        task_name: newScheduleData.task_name,
+        task_content: newScheduleData.task_content || newScheduleData.task_name,
+        start_date: newScheduleData.start_date,
+        period: parseInt(newScheduleData.period) || 1,
       };
       
       // 새 Todo 생성 API 호출
