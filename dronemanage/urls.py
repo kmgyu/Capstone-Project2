@@ -1,8 +1,12 @@
 # dronemanage/urls.py
 from django.urls import path
-from .views import UploadLogView, DroneLogListView
+from .views import UploadLogView, BatteryLogView, LocationLogView, AltitudeLogView, GPSStrengthLogView, FlightModeLogView
 
 urlpatterns = [
-    path('upload/log/', UploadLogView.as_view(), name='upload-log'),
-    path('logs/', DroneLogListView.as_view(), name='log-list'),
+    path('log/upload/', UploadLogView.as_view(), name='upload-log'),
+    path('log/battery/', BatteryLogView.as_view()),
+    path('log/location/', LocationLogView.as_view()),
+    path('log/altitude/', AltitudeLogView.as_view()),
+    path('log/gps/', GPSStrengthLogView.as_view()),
+    path('log/mode/', FlightModeLogView.as_view()),
 ]

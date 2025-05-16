@@ -21,12 +21,62 @@ class UploadLogView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class DroneLogListView(APIView):
-    def get(self, request):
+class DroneLogBaseAPIView(APIView):
+    def get_queryset(self, drone_id):
+        return DroneLog.objects.filter(drone_id=drone_id).order_by('-timestamp')
+
+    def get_drone_id(self, request):
         drone_id = request.GET.get('drone_id')
         if not drone_id:
-            return Response({"error": "drone_id는 필수입니다."}, status=400)
+            return None, Response({"error": "drone_id는 필수입니다."}, status=400)
+        return drone_id, None
 
-        logs = DroneLog.objects.filter(drone_id=drone_id).order_by('-timestamp')
-        serializer = DroneLogSerializer(logs, many=True)
-        return Response(serializer.data, status=200)
+
+class BatteryLogView(DroneLogBaseAPIView):
+    def get(self, request):
+        drone_id, error = self.get_drone_id(request)
+        if error:
+            return error
+        logs = self.get_queryset(drone_id)
+        data = [log.battery for log in logs]
+        return Response(data, status=200)
+
+
+class LocationLogView(DroneLogBaseAPIView):
+    def get(self, request):
+        drone_id, error = self.get_drone_id(request)
+        if error:
+            return error
+        logs = self.get_queryset(drone_id)
+        data = [{"latitude": log.latitude, "longitude": log.longitude} for log in logs]
+        return Response(data, status=200)
+
+
+class AltitudeLogView(DroneLogBaseAPIView):
+    def get(self, request):
+        drone_id, error = self.get_drone_id(request)
+        if error:
+            return error
+        logs = self.get_queryset(drone_id)
+        data = [log.altitude for log in logs]
+        return Response(data, status=200)
+
+
+class GPSStrengthLogView(DroneLogBaseAPIView):
+    def get(self, request):
+        drone_id, error = self.get_drone_id(request)
+        if error:
+            return error
+        logs = self.get_queryset(drone_id)
+        data = [log.gps_strength for log in logs]
+        return Response(data, status=200)
+
+
+class FlightModeLogView(DroneLogBaseAPIView):
+    def get(self, request):
+        drone_id, error = self.get_drone_id(request)
+        if error:
+            return error
+        logs = self.get_queryset(drone_id)
+        data = [log.flight_mode for log in logs]
+        return Response(data, status=200)
