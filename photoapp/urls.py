@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import UploadFieldPicAPIView, FlaskResultUpdateAPIView
+from .views import UploadFieldPicAPIView, FlaskResultUpdateAPIView,FieldSummaryAPIView
 
 urlpatterns = [
     path('upload/', UploadFieldPicAPIView.as_view(), name='upload-field-pic'),

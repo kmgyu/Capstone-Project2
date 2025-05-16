@@ -51,7 +51,8 @@ def extract_exif_data(img):
 
 # 저장 경로 생성하는 함수임
 def get_dynamic_path(user_id, field_id):
-    repo_root = os.path.join(settings.BASE_DIR)
+    # ✅ MEDIA_ROOT를 기준으로 저장해야 repository 하위에 생성됨
+    repo_root = settings.MEDIA_ROOT
     user_dir = os.path.join(repo_root, f'user_id_{user_id}')
     field_dir = os.path.join(user_dir, f'field_id_{field_id}')
     os.makedirs(field_dir, exist_ok=True)
@@ -82,13 +83,13 @@ class UploadFieldPicAPIView(APIView):
                 filename = image_file.name
                 filepath = os.path.join(save_dir, filename)
                 with open(filepath, 'wb+') as dest:
-                    for chunk in image_file.chunks():
-                        dest.write(chunk)
+                        for chunk in image_file.chunks():
+                            dest.write(chunk)
 
-                relative_path = os.path.relpath(filepath, settings.BASE_DIR)
-                instance.pic_path.name = relative_path.replace('\\', '/')
+                relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
+                instance.pic_path.name = os.path.join(relative_path).replace('\\', '/')
 
-            instance.save()
+                instance.save()
 
             enqueue_pic_path_task.delay(instance.pic_path.name)
 

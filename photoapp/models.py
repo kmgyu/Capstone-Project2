@@ -6,7 +6,7 @@ class FieldPic(models.Model):
     field_pic_id = models.AutoField(primary_key=True)
     field_id = models.ForeignKey(Field, on_delete=models.CASCADE)  # field_id 연결
     pic_name = models.CharField(max_length=255)
-    pic_path = models.ImageField(blank=True)
+    pic_path = models.CharField(max_length=300, blank=True)
     #metadata로 받는 데이터(위도,경도,찍은시간)
     latitude = models.FloatField(null=True)
     longitude = models.FloatField(null=True)
