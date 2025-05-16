@@ -31,6 +31,7 @@ urlpatterns = [
     path("todo/", include("todolist.urls")),
     path("upload/", include("multipart_picture.urls")),  
     path('weather/', include('weather.urls')),  
+    path('drone/', include("dronemanage.urls")),
 
 ]
 

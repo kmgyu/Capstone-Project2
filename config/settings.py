@@ -53,7 +53,7 @@ CUSTOM_APPS = [
     #멀티파트
     'multipart_picture',
     'weather',  # ← ✅ 이거 추가하세요!
-
+    'dronemanage',
 ]
 
 THIRD_PARTY_APPS = [
