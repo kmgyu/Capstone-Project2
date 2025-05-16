@@ -50,8 +50,7 @@ CUSTOM_APPS = [
     'fieldmanage',
     'todolist',
     'accounts',
-    #멀티파트
-    'multipart_picture',
+    'photoapp',
     'weather',  # ← ✅ 이거 추가하세요!
     'dronemanage',
 ]
@@ -186,9 +185,8 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ✅ 변경된 이미지 저장 경로
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/Capstone-Project2/storage'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'repository')
 
 
 # JWT token settings
