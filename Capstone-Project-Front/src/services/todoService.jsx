@@ -135,7 +135,9 @@ const todoService = {
   updateProgress: async (taskId, progresses) => {
     try {
       const headers = await getAuthHeaders();
-      const response = await api.patch(`/todo/progress/${taskId}/`, { progresses }, { headers });
+      console.log('진행도 업데이트 요청 헤더:', headers);  // ✅ 추가
+
+      const response = await api.patch(`/todo/todos/progress/${taskId}/`, { progresses }, { headers });
       return response.data;
     } catch (error) {
       console.error('진행도 업데이트 오류:', error);
@@ -143,12 +145,13 @@ const todoService = {
     }
   },
 
-  /** 캘린더용 포맷 변환 **/
+  //** 캘린더용 포맷 변환 **/
   formatTodosForCalendar: (todos) => {
     if (!Array.isArray(todos)) return [];
     return todos.map(todo => {
       const start = moment(todo.start_date).format('YYYY-MM-DD');
       const end = moment(todo.start_date).add(todo.period - 1, 'days').format('YYYY-MM-DD');
+      const isAnyDone = (todo.progresses || []).some(p => p.status === 'done');
       return {
         id: todo.task_id,
         title: todo.task_name,
@@ -158,10 +161,12 @@ const todoService = {
         end,
         field: todo.field,
         color: todo.is_pest ? '#e57373' : '#4d8b31',
-        completed: false
+        completed: isAnyDone,
+        progresses: todo.progresses || []  
       };
     });
   }
+
 };
 
 export default todoService;

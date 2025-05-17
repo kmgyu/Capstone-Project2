@@ -81,54 +81,53 @@ const TodoModal = ({
             </div>
           ) : (
             <ul className="todo-list">
-              {safeRenderTodos.map(todo => (
-                <li 
-                  key={todo.id || Math.random()} 
-                  className={`todo-item ${todo.completed ? 'completed' : ''}`}
-                  style={{ borderLeft: `4px solid ${todo.color || '#4CAF50'}` }}
-                >
-                  <div className="todo-checkbox-wrapper">
-                    <input 
-                      type="checkbox" 
-                      id={`todo-checkbox-${todo.id}`}
-                      className="todo-checkbox" 
-                      checked={todo.completed || false}
-                      onChange={() => typeof onToggleComplete === 'function' ? onToggleComplete(todo.id) : null}
-                    />
-                    <label 
-                      htmlFor={`todo-checkbox-${todo.id}`} 
-                      className="todo-checkbox-label"
-                    ></label>
-                  </div>
-                  
-                  <div className="todo-content">
-                    <span className="todo-text">
-                      {todo.title}
-                      {todo.start !== todo.end && (
-                        <small className="todo-date">
-                          {` (${moment(todo.start).format('M/D')} ~ ${moment(todo.end).format('M/D')})`}
-                        </small>
-                      )}
-                    </span>
-                    {todo.content && (
-                      <p className="todo-detail">{todo.content}</p>
-                    )}
-                    <div className="todo-meta">
-                      <span className={`todo-status ${todo.completed ? 'completed-status' : 'pending-status'}`}>
-                        {todo.completed ? '완료' : '진행중'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    className="delete-button"
-                    onClick={() => typeof onDeleteTodo === 'function' ? onDeleteTodo(todo.id) : null}
-                    aria-label="삭제"
+              {safeRenderTodos.map(todo => {
+                const isChecked = todo.progresses?.some(p => p.date === date && p.status === 'done');
+
+                return (
+                  <li 
+                    key={todo.id || Math.random()} 
+                    className={`todo-item ${isChecked ? 'completed' : ''}`}
+                    style={{ borderLeft: `4px solid ${todo.color || '#4CAF50'}` }}
                   >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </li>
-              ))}
+                    <div className="todo-checkbox-wrapper">
+                      <input 
+                        type="checkbox" 
+                        id={`todo-checkbox-${todo.id}`}
+                        className="todo-checkbox" 
+                        checked={isChecked}
+                        onChange={() => typeof onToggleComplete === 'function' ? onToggleComplete(todo.id, date) : null}
+                      />
+                      <label htmlFor={`todo-checkbox-${todo.id}`} className="todo-checkbox-label"></label>
+                    </div>
+                    
+                    <div className="todo-content">
+                      <span className="todo-text">
+                        {todo.title}
+                        {todo.start !== todo.end && (
+                          <small className="todo-date">
+                            {` (${moment(todo.start).format('M/D')} ~ ${moment(todo.end).format('M/D')})`}
+                          </small>
+                        )}
+                      </span>
+                      {todo.content && <p className="todo-detail">{todo.content}</p>}
+                      <div className="todo-meta">
+                        <span className={`todo-status ${isChecked ? 'completed-status' : 'pending-status'}`}>
+                          {isChecked ? '완료' : '진행중'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      className="delete-button"
+                      onClick={() => typeof onDeleteTodo === 'function' ? onDeleteTodo(todo.id) : null}
+                      aria-label="삭제"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

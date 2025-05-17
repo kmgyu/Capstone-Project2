@@ -170,16 +170,54 @@ const Dashboard = () => {
     }
   }, [schedules, selectedDate]);
   
-  // 일정 완료 상태 변경 - 백엔드에 해당 API가 없으므로 로컬에서만 처리
-  const toggleScheduleComplete = useCallback((id) => {
-    // 로컬 상태만 업데이트
-    const updatedSchedules = schedules.map(schedule => 
-      schedule.id === id ? { ...schedule, completed: !schedule.completed } : schedule
-    );
-    
-    setSchedules(updatedSchedules);
-    filterSchedulesByDate(updatedSchedules, selectedDate);
+  // 일정 완료 상태 변경 
+  const toggleScheduleComplete = useCallback(async (id, date) => {
+    const schedule = schedules.find(s => s.id === id);
+    if (!schedule) return;
+
+    const progressToUpdate = schedule.progresses.find(p => p.date === date);
+    if (!progressToUpdate) {
+      alert('해당 날짜의 진행 정보를 찾을 수 없습니다.');
+      return;
+    }
+
+    const newStatus = progressToUpdate.status === 'done' ? 'skip' : 'done';
+
+    try {
+      setLoading(true);
+
+      // ✅ 1. 서버에 진행도 업데이트 요청
+      const updatedProgress = [{ date, status: newStatus }];
+      await todoService.updateProgress(schedule.id, updatedProgress);
+
+      // ✅ 2. 로컬 상태 업데이트
+      const updatedSchedules = schedules.map(s => {
+        if (s.id !== id) return { ...s };
+
+        const updatedProgresses = s.progresses.map(p =>
+          p.date === date ? { ...p, status: newStatus } : { ...p }
+        );
+
+        const isAnyDone = updatedProgresses.some(p => p.status === 'done');
+
+        return { 
+          ...s, 
+          progresses: updatedProgresses,
+          completed: isAnyDone
+        };
+      });
+
+      setSchedules(updatedSchedules);
+      filterSchedulesByDate(updatedSchedules, selectedDate);
+
+    } catch (error) {
+      console.error('진행도 업데이트 실패:', error);
+      alert('일정 상태 변경 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   }, [schedules, selectedDate]);
+
   
   return (
     <div className="dashboard">
