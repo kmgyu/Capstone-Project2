@@ -24,7 +24,7 @@ def create_task_progress_entries(task: FieldTodo):
 def get_weather(region_name: str, target_date: datetime.date) -> str:
     try:
         weather = Weather.objects.get(region_name=region_name, date=target_date)
-        return f"{weather.weather}, {weather.temperature}°C, 강수량 {weather.precipitation}mm"
+        return f"{weather.weather}, {weather.temperature_avg}°C, 강수량 {weather.precipitation}mm"
     except Weather.DoesNotExist:
         return "날씨 정보 없음"
 

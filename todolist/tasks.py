@@ -9,6 +9,7 @@ from .utils import (
     get_pest_summary,
     get_weather,
     get_weather_for_range,
+    extract_region
 )
 
 from celery import shared_task
@@ -24,11 +25,12 @@ User = get_user_model()
 def run_generate_daily_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
+    region = extract_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
             pest_info = get_pest_summary(field)
-            weather_info = get_weather(field.field_address, base_date)
+            weather_info = get_weather(region, base_date)
             generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_date)
 
 
@@ -47,10 +49,11 @@ def run_generate_monthly_keywords_and_tasks():
 def run_generate_biweekly_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
+    region = extract_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
             keywords = get_month_keywords(field)
             pest_info = get_pest_summary(field)
-            weather_info = get_weather_for_range(field.field_address, base_date, days=14)
+            weather_info = get_weather_for_range(region, base_date, days=14)
             generate_biweekly_tasks(user, field, pest_info, weather_info, keywords, base_date)

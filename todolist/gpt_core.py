@@ -102,7 +102,6 @@ def save_task(user, field, task_data, start_date):
     create_task_progress_entries(task)
 
 
-
 # -------- 1. 월간 키워드 생성 및 저장 -------- #
 def generate_month_keywords(field, base_date):
     prompt = f"""
@@ -111,6 +110,13 @@ def generate_month_keywords(field, base_date):
 지역: {field.field_address}
 농지 설명 : {field.description}
 위 조건을 바탕으로 이번 달 주요 농작업 키워드 3~5개를 JSON 배열로 추천해줘.
+[
+  {{"keyword": "감자 심기"}},
+  {{"keyword": "퇴비 준비"}},
+  {{"keyword": "물관리"}}
+]
+
+반드시 위와 같은 형식으로만 출력해줘. 설명이나 텍스트는 포함하지 말고 JSON만 반환해.
 """
     response = openai.ChatCompletion.create(
         model=GPT,
@@ -120,14 +126,15 @@ def generate_month_keywords(field, base_date):
         max_tokens=150
     )
     try:
+        print("GPT 응답:", response["choices"][0]["message"]["content"])
         keywords = json.loads(response['choices'][0]['message']['content'])
+
         # DB 저장
-        for kw in keywords:
-            MonthlyKeyword.objects.update_or_create(
-                field_id=field,
-                year=today.year,
-                month=today.month,
-                defaults={"keywords": keywords}
+        MonthlyKeyword.objects.update_or_create(
+            field_id=field,
+            year=today.year,
+            month=today.month,
+            defaults={"keywords": keywords}
         )
         return keywords
     except Exception as e:
@@ -228,7 +235,6 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
             save_task(user, field, task_data, start_date_str)
         except Exception as e:
             print(f"[Save Error]: {e}")
-
 
 
 # -------- 3. 하루치 할 일 생성 -------- #
