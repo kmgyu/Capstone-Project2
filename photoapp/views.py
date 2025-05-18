@@ -24,6 +24,8 @@ from .forms import FieldPicForm
 from .models import FieldPic
 from fieldmanage.models import Field
 from .tasks import enqueue_pic_path_task
+from .tasks import enqueue_uploaded_photo
+
 
 
 # EXIF에서 GPS 및 촬영 시간 추출
@@ -90,8 +92,11 @@ class UploadFieldPicAPIView(APIView):
                 instance.pic_path.name = os.path.join(relative_path).replace('\\', '/')
 
                 instance.save()
+                enqueue_uploaded_photo(instance)
 
-            enqueue_pic_path_task.delay(instance.pic_path.name)
+
+            enqueue_pic_path_task.delay(f"{field_id}:{instance.pic_path.name}")
+
 
             return Response({
                 'status': 'success',
