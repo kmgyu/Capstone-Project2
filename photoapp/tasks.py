@@ -8,10 +8,10 @@ pic_buffer = []
 last_send_time = datetime.now()
 
 @shared_task
-def enqueue_pic_path_task(pic_path):
+def enqueue_pic_path_task(photo_id):
     global pic_buffer, last_send_time
 
-    pic_buffer.append(pic_path)
+    pic_buffer.append(photo_id)
 
     if len(pic_buffer) >= 10 or (datetime.now() - last_send_time > timedelta(minutes=1)):
         send_pics_to_flask_task.delay(pic_buffer)
@@ -19,7 +19,7 @@ def enqueue_pic_path_task(pic_path):
         last_send_time = datetime.now()
 
 @shared_task
-def send_pics_to_flask_task(pic_paths):
+def send_pics_to_flask_task(photo_ids):
     full_paths = [os.path.join(settings.BASE_DIR, path) for path in pic_paths]
     try:
         response = requests.post("http://172.26.21.246:5000/analyze", json={"file_paths": full_paths})
