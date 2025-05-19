@@ -151,7 +151,7 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
     )
     task_names = [t.task_name for t in prev_tasks]
     summary = ", ".join(task_names) if task_names else "없음"
-
+    print("기후 요약: ", weather)
     prompt = f"""
 날짜: {base_date.strftime("%Y-%m-%d")}
 작물: {field.crop_name}
