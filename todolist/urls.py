@@ -7,7 +7,6 @@ from .views import (
     AllFieldTodosAPIView,
     DailyTodosAPIView,
 )
-from todolist.keyword_views import MonthlyKeywordCRUDAPIView
 
 from todolist import gpt_views
 # from .tasks import create_task_from_gpt
@@ -34,7 +33,6 @@ urlpatterns = [
     path('todos/progress/<int:task_id>/', TaskProgressUpdateAPIView.as_view()),
     
     
-    path("todo/keywords/<int:field_id>/", MonthlyKeywordCRUDAPIView.as_view()),  # POST, PUT, DELETE
     
     
     # gpt에게 todo list 뽑아 오는 기능

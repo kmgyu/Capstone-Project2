@@ -1,14 +1,18 @@
 from datetime import timedelta, datetime
 from .models import TaskProgress, FieldTodo
+from .serializers import FieldTodoSerializer
 from weather.models import Weather
 from fieldmanage.models import MonthlyKeyword
-from datetime import datetime
+from collections import defaultdict
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from konlpy.tag import Okt
 
 def create_task_progress_entries(task: FieldTodo):
     if not task.start_date or not task.period:
         return
 
-    for i in range(task.period):
+    for i in range(0, task.period):
         date = (task.start_date + timedelta(days=i)).date()
         TaskProgress.objects.get_or_create(
             task_id=task,
@@ -16,11 +20,20 @@ def create_task_progress_entries(task: FieldTodo):
             defaults={'status': 'skip'}
         )
 
+def extract_region(address: str) -> str:
+    """
+    주소에서 시/도(ex: 서울특별시, 광주광역시)만 추출
+    """
+    if not address:
+        return ""
+
+    # 공백 기준 첫 번째 토큰이 시/도인 경우
+    return address.strip().split()[0]
 
 def get_weather(region_name: str, target_date: datetime.date) -> str:
     try:
         weather = Weather.objects.get(region_name=region_name, date=target_date)
-        return f"{weather.weather}, {weather.temperature}°C, 강수량 {weather.precipitation}mm"
+        return f"{weather.weather}, {weather.temperature_avg}°C, 강수량 {weather.precipitation}mm"
     except Weather.DoesNotExist:
         return "날씨 정보 없음"
 
@@ -38,7 +51,7 @@ def get_weather_for_range(region_name: str, start_date: datetime.date, days: int
 
 def get_month_keywords(field):
     today = datetime.today().date()
-    qs = MonthlyKeyword.objects.filter(field=field, month=today.month, year=today.year)
+    qs = MonthlyKeyword.objects.filter(field_id=field, month=today.month, year=today.year)
     result = []
     for obj in qs:
         if isinstance(obj.keywords, list):
@@ -53,3 +66,61 @@ def get_month_keywords(field):
 def get_pest_summary(field):
     # TODO: 병해충 분석 로직 연결 시 여기에 구현
     return "진딧물, 응애 발생 기록 있음 (예시)"
+
+
+okt = Okt()
+
+def expand_tasks_by_date(todos):
+    """
+    모든 FieldTodo를 날짜별로 확장
+    period=3이면 start_date부터 3일간 반복해서 해당 날짜에 추가
+    """
+    date_map = defaultdict(list)
+    for task in todos:
+        for i in range(task.period or 1):
+            day = task.start_date.date() + timedelta(days=i)
+            date_map[day].append(task)
+    return date_map
+
+
+def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
+    final_result = []
+
+    for date in sorted(date_map.keys()):
+        tasks = date_map[date]
+
+        # ⬇️ 작업명 + 내용 결합
+        texts = [f"{t.task_name} {t.task_content or ''}" for t in tasks]
+
+        # TF-IDF 벡터화
+        vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None, ngram_range=(1, 2))
+        tfidf_matrix = vectorizer.fit_transform(texts)
+
+        # 유사도 행렬 계산
+        sim_matrix = cosine_similarity(tfidf_matrix)
+
+        used = [False] * len(tasks)
+        kept = []
+
+        for i in range(len(tasks)):
+            if used[i]:
+                continue
+            base_task = tasks[i]
+            kept.append(base_task)
+            used[i] = True
+
+            # i와 유사한 나머지 제거
+            for j in range(i + 1, len(tasks)):
+                if not used[j] and sim_matrix[i][j] >= threshold:
+                    used[j] = True
+
+            if len(kept) >= max_per_day:
+                break
+
+        # 직렬화 및 날짜 포함
+        for task in kept:
+            serialized = FieldTodoSerializer(task).data
+            serialized["date"] = str(date)
+            final_result.append(serialized)
+
+    return final_result

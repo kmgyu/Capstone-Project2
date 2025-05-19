@@ -86,7 +86,7 @@ class MonthlyFieldTodoAPIView(APIView):
         # ✅ 키워드 가져오기
         keywords = []
         try:
-            mk = MonthlyKeyword.objects.get(field=field, year=year, month=month)
+            mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
             keywords = mk.keywords
         except MonthlyKeyword.DoesNotExist:
             pass
@@ -105,7 +105,7 @@ class AllFieldTodosAPIView(APIView):
         start = request.query_params.get('start')
         end = request.query_params.get('end')
 
-        # 기본값: 이번 달
+        # 날짜 파싱
         try:
             if start and end:
                 start_date = parse_datetime(start)
@@ -116,17 +116,36 @@ class AllFieldTodosAPIView(APIView):
                 raise ValueError
         except ValueError:
             today = datetime.today()
-            start_date = make_aware(datetime(today.year, today.month, 1))
-            _, last_day = calendar.monthrange(today.year, today.month)
-            end_date = make_aware(datetime(today.year, today.month, last_day, 23, 59, 59))
+            year, month = today.year, today.month
+            start_date = make_aware(datetime(year, month, 1))
+            _, last_day = calendar.monthrange(year, month)
+            end_date = make_aware(datetime(year, month, last_day, 23, 59, 59))
 
-        # 사용자 할 일 가져오기
+        # 전체 할 일 조회
         todos = FieldTodo.objects.filter(owner=user, start_date__range=(start_date, end_date)).order_by('start_date', 'priority')
 
-        # 날짜별로 확장 및 유사 중복 제거
+        # 날짜별로 확장 및 중복 제거
         date_map = expand_tasks_by_date(todos)
         final_result = deduplicate_tasks_per_day(date_map)
-        return Response(final_result)
+
+        # 🔥 키워드 추가 (노지별 분리)
+        year = start_date.year
+        month = start_date.month
+
+        keyword_map = {}  # field_id → keyword list
+
+        fields = Field.objects.filter(owner=user)
+        for field in fields:
+            try:
+                mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
+                keyword_map[str(field.pk)] = mk.keywords  # key를 string으로
+            except MonthlyKeyword.DoesNotExist:
+                keyword_map[str(field.pk)] = []
+
+        return Response({
+            "todos": final_result,
+            "keywords": keyword_map  # 예: { "26": [...], "27": [...] }
+        })
     
 # 특정 날의 사용자가 소유한 모든 노지의 할 일을 조회
 class DailyTodosAPIView(APIView):

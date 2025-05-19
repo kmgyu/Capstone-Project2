@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import FieldTodo, Field, TaskProgress
-from fieldmanage.models import MonthlyKeyword
 
 class TaskProgressSerializer(serializers.ModelSerializer):
     class Meta:
