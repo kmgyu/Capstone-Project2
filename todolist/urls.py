@@ -4,10 +4,12 @@ from .views import (
     FieldTodoListAPIView,
     TaskProgressUpdateAPIView,
     MonthlyFieldTodoAPIView,
-    AllFieldTodosAPIView
+    AllFieldTodosAPIView,
+    DailyTodosAPIView,
 )
-from todolist import gpt_views
+from todolist.keyword_views import MonthlyKeywordCRUDAPIView
 
+from todolist import gpt_views
 # from .tasks import create_task_from_gpt
 
 urlpatterns = [
@@ -15,6 +17,9 @@ urlpatterns = [
     
     # 사용자 노지에 등록된 모든 할 일을 조회
     path('todos/all/', AllFieldTodosAPIView.as_view(), name='all-field-todos'),
+    
+    # 사용자 노지에 등록된 특정 날짜의 모든 할 일을 조회
+    path('todos/all/date/', DailyTodosAPIView.as_view(), name='all-date-todos'),
     
     # 모든 할 일 조회 및 파라미터 추가 시 기간 필터링 후 조회(GET), 할 일 생성(POST)
     path('todos/<int:field_id>/list/', FieldTodoListAPIView.as_view(), name='todo-list-by-field'),
@@ -27,6 +32,10 @@ urlpatterns = [
     
     # 진행도 업데이트
     path('todos/progress/<int:task_id>/', TaskProgressUpdateAPIView.as_view()),
+    
+    
+    path("todo/keywords/<int:field_id>/", MonthlyKeywordCRUDAPIView.as_view()),  # POST, PUT, DELETE
+    
     
     # gpt에게 todo list 뽑아 오는 기능
     # test 코드는 주석처리하고 명시할 것

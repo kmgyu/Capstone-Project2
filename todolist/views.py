@@ -2,6 +2,7 @@ import calendar
 from django.utils.timezone import make_aware
 from datetime import datetime
 
+from .utils import create_task_progress_entries, expand_tasks_by_date, deduplicate_tasks_per_day
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +15,45 @@ from datetime import timedelta
 from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
 from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
-from .utils import create_task_progress_entries
+
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from konlpy.tag import Okt
+
+okt = Okt()
+
+def deduplicate_for_view(todos, threshold=0.85):
+    if len(todos) <= 1:
+        return todos
+
+    unique_tasks = []
+    vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
+
+    # 비교용 텍스트 만들기
+    texts = [f"{t.task_name} {t.task_content or ''}" for t in todos]
+    vectors = vectorizer.fit_transform(texts)
+    similarity = cosine_similarity(vectors)
+
+    used = [False] * len(todos)
+
+    for i in range(len(todos)):
+        if used[i]:
+            continue
+        used[i] = True
+        group = [i]
+
+        # i 이후 모든 항목과 비교
+        for j in range(i + 1, len(todos)):
+            if not used[j] and similarity[i][j] >= threshold:
+                group.append(j)
+                used[j] = True
+
+        # 같은 그룹 중 priority가 가장 높은 할 일 선택
+        best = min(group, key=lambda idx: todos[idx].priority)
+        unique_tasks.append(todos[best])
+
+    return unique_tasks
 
 # 한달 할 일 조회
 class MonthlyFieldTodoAPIView(APIView):
@@ -57,34 +96,63 @@ class MonthlyFieldTodoAPIView(APIView):
             "keywords": keywords
         })
     
+# 사용자가 소유한 모든 노지의 할 일을 조회(특정 날짜 혹은 한 달치, 파라미터 미입력 시 해당 달의 할 일일)
 class AllFieldTodosAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        todos = FieldTodo.objects.filter(owner=user)
-
         start = request.query_params.get('start')
         end = request.query_params.get('end')
 
-        if start and end:
-            try:
+        # 기본값: 이번 달
+        try:
+            if start and end:
                 start_date = parse_datetime(start)
                 end_date = parse_datetime(end)
                 if not (start_date and end_date):
                     raise ValueError
+            else:
+                raise ValueError
+        except ValueError:
+            today = datetime.today()
+            start_date = make_aware(datetime(today.year, today.month, 1))
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_date = make_aware(datetime(today.year, today.month, last_day, 23, 59, 59))
 
-                # 🛠️ aware datetime으로 변환
-                if start_date.tzinfo is None:
-                    start_date = make_aware(start_date)
-                if end_date.tzinfo is None:
-                    end_date = make_aware(end_date)
+        # 사용자 할 일 가져오기
+        todos = FieldTodo.objects.filter(owner=user, start_date__range=(start_date, end_date)).order_by('start_date', 'priority')
 
-                todos = todos.filter(start_date__range=(start_date, end_date))
-            except ValueError:
-                return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        # 날짜별로 확장 및 유사 중복 제거
+        date_map = expand_tasks_by_date(todos)
+        final_result = deduplicate_tasks_per_day(date_map)
+        return Response(final_result)
+    
+# 특정 날의 사용자가 소유한 모든 노지의 할 일을 조회
+class DailyTodosAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        serializer = FieldTodoSerializer(todos, many=True)
+    def get(self, request):
+        user = request.user
+        date = request.query_params.get("date")
+        if not date:
+            return Response({'error': 'date 파라미터는 필수입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_date = parse_datetime(date).date()
+        except Exception:
+            return Response({'error': '날짜 형식이 잘못되었습니다. YYYY-MM-DD 형식으로 주세요.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        todos = FieldTodo.objects.filter(owner=user)
+
+        result = []
+        for todo in todos:
+            todo_dates = [todo.start_date.date() + timedelta(days=i) for i in range(todo.period or 1)]
+            if target_date in todo_dates:
+                result.append(todo)
+
+        serializer = FieldTodoSerializer(result, many=True)
         return Response(serializer.data)
     
 # 사용자 기준 Todo 기간 목록 조회 및 생성
