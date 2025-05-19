@@ -20,6 +20,15 @@ def create_task_progress_entries(task: FieldTodo):
             defaults={'status': 'skip'}
         )
 
+def extract_region(address: str) -> str:
+    """
+    주소에서 시/도(ex: 서울특별시, 광주광역시)만 추출
+    """
+    if not address:
+        return ""
+
+    # 공백 기준 첫 번째 토큰이 시/도인 경우
+    return address.strip().split()[0]
 
 def get_weather(region_name: str, target_date: datetime.date) -> str:
     try:
