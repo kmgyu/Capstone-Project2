@@ -11,24 +11,28 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import '../css/AddFarmlandModal.css';
 
-const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
+const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
   // 맵 관련 상태 및 참조
   const mapContainer = useRef(null);
   const map = useRef(null);
   const drawingManager = useRef(null);
   const rectangle = useRef(null);
+  const polygon = useRef(null);
   
   // 폼 상태
-  const [farmlandName, setFarmlandName] = useState('');
-  const [farmlandDescription, setFarmlandDescription] = useState('');
+  const [fieldName, setFieldName] = useState('');
+  const [fieldAddress, setFieldAddress] = useState('');
+  const [fieldArea, setFieldArea] = useState(0);
+  const [cropName, setCropName] = useState('배추');
+  const [description, setDescription] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [drawingMode, setDrawingMode] = useState(false);
   const [rectangleBounds, setRectangleBounds] = useState(null);
-  const [area, setArea] = useState(0);
   const [mapScriptLoaded, setMapScriptLoaded] = useState(false);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [isValidationPassed, setIsValidationPassed] = useState(false);
   const [validationMessage, setValidationMessage] = useState('');
+  const [geometry, setGeometry] = useState(null);
 
   // 서비스 참조
   const ps = useRef(null);
@@ -50,18 +54,72 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
 
     if (result.success) {
       const coordinates = result.data.coordinates;
-      console.log(coordinates);
       if (coordinates && coordinates.length > 0) {
         console.log('Geometry 좌표:', coordinates);
+        
+        // 좌표로 GeoJSON 객체 생성
+        const geoJson = {
+          type: "Polygon",
+          coordinates: coordinates
+        };
+        console.log('결과 데이터', result)
+        const field_area = result.field_area;
+        const field_address = result.field_address;
+        console.log(field_area, field_address);
+        setGeometry(geoJson);
+        setFieldArea(field_area);
+        setFieldAddress(field_address);
         drawGeometryPolygon(coordinates);
-        alert('필지 조회 및 표시 성공!');
+        setIsValidationPassed(true);
+        setValidationMessage('필지 검증이 완료되었습니다. 저장할 수 있습니다.');
+        
+        // 면적 정보 자동 설정
+        if (fieldArea === 0) {
+          const calculatedArea = calculatePolygonArea(coordinates[0][0]);
+          setFieldArea(Math.round(calculatedArea));
+        }
       } else {
         console.error('유효하지 않은 좌표 데이터:', coordinates);
-        alert('유효한 좌표를 찾을 수 없습니다.');
+        setIsValidationPassed(false);
+        setValidationMessage('유효한 좌표를 찾을 수 없습니다.');
       }
     } else {
-      alert(`필지 조회 실패: ${result.error}`);
+      setIsValidationPassed(false);
+      setValidationMessage(`필지 조회 실패: ${result.error}`);
     }
+  };
+
+  // 폴리곤 면적 계산 함수
+  const calculatePolygonArea = (coordinates) => {
+    if (!coordinates || coordinates.length < 3) return 0;
+    
+    // 지구 반경 (미터)
+    const earthRadius = 6371000;
+    
+    let totalArea = 0;
+    
+    // 폴리곤 면적 계산 (구형 면적 계산)
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      const p1 = {
+        lng: coordinates[i][0] * Math.PI / 180,
+        lat: coordinates[i][1] * Math.PI / 180
+      };
+      const p2 = {
+        lng: coordinates[i + 1][0] * Math.PI / 180,
+        lat: coordinates[i + 1][1] * Math.PI / 180
+      };
+      
+      // 두 점 사이의 각도
+      const angle = Math.acos(
+        Math.sin(p1.lat) * Math.sin(p2.lat) +
+        Math.cos(p1.lat) * Math.cos(p2.lat) * Math.cos(p1.lng - p2.lng)
+      );
+      
+      totalArea += angle * earthRadius * earthRadius;
+    }
+    
+    // 면적 반환 (제곱미터)
+    return Math.abs(totalArea);
   };
 
   // 응답 폴리곤 그리기
@@ -81,12 +139,17 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
       rectangle.current.setMap(null);
       rectangle.current = null;
     }
+    
+    if (polygon.current) {
+      polygon.current.setMap(null);
+      polygon.current = null;
+    }
 
     const path = coordinatesArray.map(coord => 
       new window.kakao.maps.LatLng(coord[1], coord[0])
     );
 
-    const polygon = new window.kakao.maps.Polygon({
+    const newPolygon = new window.kakao.maps.Polygon({
       path: path,
       strokeWeight: 3,
       strokeColor: '#FF0000',
@@ -96,7 +159,7 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
       fillOpacity: 0.3
     });
 
-    polygon.setMap(map.current);
+    newPolygon.setMap(map.current);
 
     // 지도 중심 이동
     const bounds = new window.kakao.maps.LatLngBounds();
@@ -104,10 +167,8 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
     map.current.setBounds(bounds);
 
     // 상태 저장
-    rectangle.current = polygon;
+    polygon.current = newPolygon;
   };
-
-
 
   // 맵 초기화 함수
   const initializeMap = () => {
@@ -169,6 +230,11 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
         
         // 그리기 모드 비활성화
         setDrawingMode(false);
+        
+        // 검증 상태 초기화
+        setIsValidationPassed(false);
+        setValidationMessage('');
+        setGeometry(null);
       });
       
       // 오버레이가 삭제될 때 이벤트 처리
@@ -176,7 +242,8 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
         // 사각형 상태 초기화
         setRectangleBounds(null);
         rectangle.current = null;
-        setArea(0);
+        setFieldArea(0);
+        setIsValidationPassed(false);
       });
       
       setMapInitialized(true);
@@ -212,7 +279,7 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
     
     // 면적 계산 (제곱미터)
     const calculatedArea = Math.abs(latDistance * lngDistance);
-    setArea(calculatedArea);
+    setFieldArea(Math.round(calculatedArea));
   };
 
   // 모달이 처음 열릴 때 스크립트 로드
@@ -363,6 +430,9 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
           position: placePosition,
           map: map.current
         }));
+        
+        // 첫 번째 검색 결과의 주소를 입력란에 설정
+        setFieldAddress(place.address_name || place.road_address_name || "");
       }
     });
     
@@ -383,65 +453,73 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
       rectangle.current = null;
     }
     
+    if (polygon.current) {
+      polygon.current.setMap(null);
+      polygon.current = null;
+    }
+    
     // 상태 초기화
     setRectangleBounds(null);
-    setArea(0);
+    setFieldArea(0);
+    setIsValidationPassed(false);
+    setValidationMessage('');
+    setGeometry(null);
   };
-
 
   // 폼 리셋 함수
   const resetForm = () => {
-    setFarmlandName('');
-    setFarmlandDescription('');
+    setFieldName('');
+    setFieldAddress('');
+    setCropName('');
+    setDescription('');
     setSearchKeyword('');
     setDrawingMode(false);
     clearRectangle();
   };
 
   // 노지 추가 폼 제출 핸들러
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!farmlandName.trim()) {
+    if (!fieldName.trim()) {
       alert('노지 이름을 입력해주세요.');
       return;
     }
     
-    if (!rectangleBounds) {
-      alert('노지 영역을 지도에서 사각형으로 표시해주세요.');
+    if (!isValidationPassed || !geometry) {
+      alert('노지 검증을 먼저 완료해주세요.');
       return;
     }
     
-    // 사각형의 꼭지점 좌표 추출
-    const sw = rectangleBounds.getSouthWest();
-    const ne = rectangleBounds.getNorthEast();
-    const nw = new window.kakao.maps.LatLng(ne.getLat(), sw.getLng());
-    const se = new window.kakao.maps.LatLng(sw.getLat(), ne.getLng());
-    
-    // 좌표 배열 생성 (시계 방향)
-    const polygonPath = [
-      { lat: sw.getLat(), lng: sw.getLng() }, // 남서
-      { lat: se.getLat(), lng: se.getLng() }, // 남동
-      { lat: ne.getLat(), lng: ne.getLng() }, // 북동
-      { lat: nw.getLat(), lng: nw.getLng() }  // 북서
-    ];
-    
     // 노지 데이터 생성
-    const newFarmland = {
-      id: Date.now(), // 임시 ID
-      title: farmlandName,
-      description: farmlandDescription,
-      area: Math.round(area), // 제곱미터
-      polygon: polygonPath,
-      createdAt: new Date().toISOString(),
-      image: '../../public/logo192.png' // 임시 이미지
+    const fieldData = {
+      field_name: fieldName,
+      field_address: fieldAddress,
+      field_area: fieldArea,
+      crop_name: cropName,
+      description: description,
+      geometry: geometry
     };
     
-    // 부모 컴포넌트에 데이터 전달
-    onAddFarmland(newFarmland);
-    
-    // 모달 닫기
-    onClose();
+    try {
+      // 노지 생성 API 호출
+      const result = await farmlandService.createField(fieldData);
+      
+      if (result.success) {
+        alert('노지가 성공적으로 등록되었습니다.');
+        
+        // 부모 컴포넌트에 데이터 전달
+        onAddField(result.data);
+        
+        // 모달 닫기
+        onClose();
+      } else {
+        alert(`노지 등록에 실패했습니다: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('노지 등록 중 오류 발생:', error);
+      alert('노지 등록 중 오류가 발생했습니다.');
+    }
   };
 
   // 키보드 엔터 키로 검색
@@ -501,9 +579,9 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
             
             <div id="map" ref={mapContainer} className="kakao-map"></div>
             
-            {area > 0 && (
+            {fieldArea > 0 && (
               <div className="area-info">
-                <span>면적: 약 {Math.round(area).toLocaleString()} m² ({Math.round(area / 10000 * 100) / 100} 헥타르)</span>
+                <span>면적: 약 {fieldArea.toLocaleString()} m² ({(fieldArea / 10000).toFixed(2)} 헥타르)</span>
               </div>
             )}
           </div>
@@ -515,31 +593,32 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddFarmland }) => {
               <input
                 id="farmland-name"
                 type="text"
-                value={farmlandName}
-                onChange={(e) => setFarmlandName(e.target.value)}
+                value={fieldName}
+                onChange={(e) => setFieldName(e.target.value)}
                 placeholder="노지 이름을 입력하세요"
                 required
               />
             </div>
-            
+          
             <div className="form-group">
               <label htmlFor="farmland-description">간단 설명</label>
               <textarea
                 id="farmland-description"
-                value={farmlandDescription}
-                onChange={(e) => setFarmlandDescription(e.target.value)}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="노지에 대한 간단한 설명을 입력하세요"
-                rows="4"
+                rows="3"
               ></textarea>
             </div>
             
-             <div className="form-actions">
+            <div className="form-actions">
               <button
                 type="button"
                 className="verify-button"
                 onClick={handleVerifyBBox}
+                disabled={!rectangleBounds}
               >
-                검증하기
+                필지 검증
               </button>
               <button 
                 type="submit" 
