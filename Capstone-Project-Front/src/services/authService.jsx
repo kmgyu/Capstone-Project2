@@ -45,10 +45,9 @@ const authService = {
       const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
         refresh: refreshToken,
       });
-      const { access, refresh } = response.data;
+      const { access } = response.data;
       sessionStorage.setItem('token', access);
-      sessionStorage.setItem('refreshToken', refresh);
-      return { success: true, access, refresh };
+      return { success: true, access };
     } catch (error) {
       const reason = error.response?.data?.detail || 'refresh_failed';
       return { success: false, reason };
