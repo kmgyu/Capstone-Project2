@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  // faDrone, 
-  faSun, 
-  faUser, 
+import {
+  faSun,
+  faCloudSun,
+  faCloud,
+  faCloudRain,
+  faCloudShowersHeavy,
+  faSnowflake,
+  faUser,
   faBars,
   faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons';
 import '../css/Header.css';
+import weatherService from '../services/weatherService';
+import authService from '../services/authService';
+
+const weatherIconMap = {
+  '맑음':            faSun,
+  '구름많음':        faCloudSun,
+  '흐림':            faCloud,
+  '비':              faCloudRain,
+  '소나기':          faCloudShowersHeavy,
+  '비/눈':           faCloudShowersHeavy,
+  '눈':              faSnowflake
+};
 
 const Header = ({ onLogout }) => {
   const navigate = useNavigate();
@@ -27,6 +43,47 @@ const Header = ({ onLogout }) => {
       setName(storedName);
     }
   }, []);
+
+  useEffect(() => {
+    let retryId = null;
+    let intervalId = null;
+    let unmounted = false;
+
+    const fetchWeather = async () => {
+      const fieldId = sessionStorage.getItem('main_field');
+      const token   = authService.getAccessToken();
+      if (!fieldId || !token) return false;           // 준비 안 됨
+
+      try {
+        const data = await weatherService.getWeather(fieldId);
+        if (unmounted) return true;
+        setWeatherInfo({
+          icon: weatherIconMap[data.weather] ?? faSun,
+          description: data.weather,
+          temperature: Math.round(data.temperature)
+        });
+        return true;                                  // 성공
+      } catch (e) {
+        if (e.response?.status !== 401) console.error('날씨 실패:', e);
+        return false;
+      }
+    };
+
+    // 1초 간격 재시도
+    retryId = setInterval(async () => {
+      if (await fetchWeather()) {
+        clearInterval(retryId);
+        intervalId = setInterval(fetchWeather, 30 * 60 * 1000); // 30 min
+      }
+    }, 1000);
+
+    return () => {
+      unmounted = true;
+      clearInterval(retryId);
+      clearInterval(intervalId);
+    };
+  }, []);
+
   const toggleMobileMenu = () => {
     setShowMobileMenu(!showMobileMenu);
   };
