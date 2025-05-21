@@ -16,45 +16,6 @@ from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
 from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
 
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from konlpy.tag import Okt
-
-okt = Okt()
-
-def deduplicate_for_view(todos, threshold=0.85):
-    if len(todos) <= 1:
-        return todos
-
-    unique_tasks = []
-    vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
-
-    # 비교용 텍스트 만들기
-    texts = [f"{t.task_name} {t.task_content or ''}" for t in todos]
-    vectors = vectorizer.fit_transform(texts)
-    similarity = cosine_similarity(vectors)
-
-    used = [False] * len(todos)
-
-    for i in range(len(todos)):
-        if used[i]:
-            continue
-        used[i] = True
-        group = [i]
-
-        # i 이후 모든 항목과 비교
-        for j in range(i + 1, len(todos)):
-            if not used[j] and similarity[i][j] >= threshold:
-                group.append(j)
-                used[j] = True
-
-        # 같은 그룹 중 priority가 가장 높은 할 일 선택
-        best = min(group, key=lambda idx: todos[idx].priority)
-        unique_tasks.append(todos[best])
-
-    return unique_tasks
-
 # 한달 할 일 조회
 class MonthlyFieldTodoAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -96,7 +57,8 @@ class MonthlyFieldTodoAPIView(APIView):
             "keywords": keywords
         })
     
-# 사용자가 소유한 모든 노지의 할 일을 조회(특정 날짜 혹은 한 달치, 파라미터 미입력 시 해당 달의 할 일일)
+from collections import Counter
+
 class AllFieldTodosAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -105,7 +67,6 @@ class AllFieldTodosAPIView(APIView):
         start = request.query_params.get('start')
         end = request.query_params.get('end')
 
-        # 날짜 파싱
         try:
             if start and end:
                 start_date = parse_datetime(start)
@@ -121,31 +82,35 @@ class AllFieldTodosAPIView(APIView):
             _, last_day = calendar.monthrange(year, month)
             end_date = make_aware(datetime(year, month, last_day, 23, 59, 59))
 
-        # 전체 할 일 조회
+        # ✅ 할 일 조회 및 중복 제거
         todos = FieldTodo.objects.filter(owner=user, start_date__range=(start_date, end_date)).order_by('start_date', 'priority')
-
-        # 날짜별로 확장 및 중복 제거
         date_map = expand_tasks_by_date(todos)
         final_result = deduplicate_tasks_per_day(date_map)
 
-        # 🔥 키워드 추가 (노지별 분리)
+        # ✅ 키워드 빈도 분석
         year = start_date.year
         month = start_date.month
-
-        keyword_map = {}  # field_id → keyword list
-
         fields = Field.objects.filter(owner=user)
+
+        keyword_counter = Counter()
+
         for field in fields:
             try:
-                mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
-                keyword_map[str(field.pk)] = mk.keywords  # key를 string으로
+                mk = MonthlyKeyword.objects.get(field=field, year=year, month=month)
+                for kw in mk.keywords:
+                    if isinstance(kw, dict) and 'keyword' in kw:
+                        keyword_counter[kw['keyword']] += 1
             except MonthlyKeyword.DoesNotExist:
-                keyword_map[str(field.pk)] = []
+                continue
+
+        # 상위 5개 키워드만 추출
+        top_keywords = [{"keyword": k, "count": v} for k, v in keyword_counter.most_common(5)]
 
         return Response({
             "todos": final_result,
-            "keywords": keyword_map  # 예: { "26": [...], "27": [...] }
+            "top_keywords": top_keywords  # ✅ 여기서 상위 5개만 응답
         })
+
     
 # 특정 날의 사용자가 소유한 모든 노지의 할 일을 조회
 class DailyTodosAPIView(APIView):
