@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
-import Hero from './components/Hero';
+import HeroSection from './components/HeroSection';
 import Dashboard from './components/Dashboard';
 import Slider from './components/Slider';
 import Footer from './components/Footer';
@@ -112,7 +112,15 @@ function AppRoutes() {
       setLoading(false);
     }
   };
-
+  // 로그아웃 처리 함수
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    setIsAuthenticated(false);
+    setUserData(null);
+    setTodos([]);
+    setFilteredTodos([]);
+  };
   // 라우트 변경 시 토큰 검증
   useEffect(() => {
     const checkTokenValidity = async () => {
@@ -175,15 +183,7 @@ function AppRoutes() {
     setUserData(user);
   };
 
-  // 로그아웃 처리 함수
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    setIsAuthenticated(false);
-    setUserData(null);
-    setTodos([]);
-    setFilteredTodos([]);
-  };
+  
 
   // 월이 변경될 때 호출되는 함수 - 모든 데이터 다시 불러오기
   const handleMonthChange = async (year, month) => {
@@ -383,7 +383,7 @@ function AppRoutes() {
         <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main className="main-content">
           <div className="container">
-            <Hero />
+            <HeroSection />
             <Dashboard />
             <Slider />
           </div>
