@@ -55,7 +55,7 @@ const Header = ({ onLogout }) => {
       if (!fieldId || !token) return false;           // 준비 안 됨
 
       try {
-        const data = await weatherService.getWeather(fieldId);
+        const data = await weatherService.getWeather();
         if (unmounted) return true;
         setWeatherInfo({
           icon: weatherIconMap[data.weather] ?? faSun,
@@ -75,7 +75,7 @@ const Header = ({ onLogout }) => {
         clearInterval(retryId);
         intervalId = setInterval(fetchWeather, 30 * 60 * 1000); // 30 min
       }
-    }, 1000);
+    }, 5000);
 
     return () => {
       unmounted = true;

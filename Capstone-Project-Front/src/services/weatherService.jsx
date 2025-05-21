@@ -36,13 +36,14 @@ const weatherService = {
     /**
    * 사용자 노지 날씨 조회
    */
-  getWeather: async (fieldId) => {
+  getWeather: async () => {
     const headers = await getAuthHeaders();        // { Authorization: 'Bearer …' }
-    const data    = { field_id: Number(fieldId) }; // 요청 본문
+    // const data    = { field_id: Number(fieldId) }; // 요청 본문
 
     const res = await api.post(
       '/weather/short-now/',   // URL
-      data,                    // ✔ ① body(JSON) — field_id만 넣기
+      // data,                    // ✔ ① body(JSON) — field_id만 넣기
+      {},
       { headers }              // ✔ ② config — 헤더만
     );
 
