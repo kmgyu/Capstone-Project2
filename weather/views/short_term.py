@@ -19,7 +19,7 @@ class RealtimeShortTermWeatherAPIView(APIView):
         # ✅ 필드 조회
         try:
             if field_id:
-                field = Field.objects.get(id=field_id, owner=user)
+                field = Field.objects.get(field_id=field_id, owner=user)
             else:
                 field = Field.objects.filter(owner=user).first()
             if not field:
