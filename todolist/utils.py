@@ -20,16 +20,31 @@ def create_task_progress_entries(task: FieldTodo):
             defaults={'status': 'skip'}
         )
 
-def extract_region(address: str) -> str:
+# 날씨 입력 조회 전에 노지 주소 일치시킴
+def extract_weather_region(address: str) -> str:
     """
-    주소에서 시/도(ex: 서울특별시, 광주광역시)만 추출
+    field.field_address에서 시/도 단위 region_name 추출.
+    강원도일 경우 영서/영동 분리. 쉼표 없음 전제.
     """
     if not address:
         return ""
 
-    # 공백 기준 첫 번째 토큰이 시/도인 경우
-    return address.strip().split()[0]
+    parts = address.strip().split()
+    if not parts:
+        return ""
 
+    region = parts[0]
+
+    if region == "강원도":
+        east_cities = {"강릉시", "동해시", "삼척시", "속초시", "고성군", "양양군"}
+        if any(city in parts for city in east_cities):
+            return "강원도 영동"
+        return "강원도 영서"
+    
+    return region
+
+
+# 날씨 하루 받아오기
 def get_weather(region_name: str, target_date: datetime.date) -> str:
     try:
         weather = Weather.objects.get(region_name=region_name, date=target_date)
@@ -37,18 +52,18 @@ def get_weather(region_name: str, target_date: datetime.date) -> str:
     except Weather.DoesNotExist:
         return "날씨 정보 없음"
 
-
-def get_weather_for_range(region_name: str, start_date: datetime.date, days: int = 14) -> str:
+# 날씨 10일 치 받아오기
+def get_weather_for_range(region_name: str, start_date: datetime.date, days: int = 10) -> str:
     end_date = start_date + timedelta(days=days - 1)
-    weather_qs = Weather.objects.filter(region_name=region_name, date__range=(start_date, end_date)).order_by("date")
+    weather_qs = Weather.objects.filter(region_name__startswith=region_name, date__range=(start_date, end_date)).order_by("date")
     if not weather_qs.exists():
         return "날씨 정보 없음"
     return "\n".join(
-        f"{weather.date.strftime('%Y-%m-%d')}: {weather.weather}, {weather.temperature}°C, {weather.precipitation}mm"
+        f"{weather.date.strftime('%Y-%m-%d')}: {weather.weather}, {weather.temperature_avg}°C, {weather.precipitation}mm"
         for weather in weather_qs
     )
 
-
+# 노지의 한달 키워드 조회회
 def get_month_keywords(field):
     today = datetime.today().date()
     qs = MonthlyKeyword.objects.filter(field_id=field, month=today.month, year=today.year)
@@ -70,6 +85,7 @@ def get_pest_summary(field):
 
 okt = Okt()
 
+# 전체 노지의 할 일 날짜별로 분리
 def expand_tasks_by_date(todos):
     """
     모든 FieldTodo를 날짜별로 확장
@@ -82,7 +98,7 @@ def expand_tasks_by_date(todos):
             date_map[day].append(task)
     return date_map
 
-
+# 분리한 전체 노지의 할 일들 하루씩 중복 검사해서 제외
 def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
     final_result = []
 
@@ -119,3 +135,4 @@ def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
             final_result.append(serialized)
 
     return final_result
+

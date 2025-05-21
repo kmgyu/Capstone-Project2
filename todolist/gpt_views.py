@@ -15,7 +15,7 @@ from .utils import (
     get_pest_summary,
     get_weather,
     get_weather_for_range,
-    extract_region
+    extract_weather_region
 )
 
 User = get_user_model()
@@ -36,7 +36,8 @@ def manual_generate_daily(request):
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
     base_date = datetime.today().date()
-    weather = get_weather(field.field_address, base_date)
+    region = extract_weather_region(field.field_address)
+    weather = get_weather(region, base_date)
     pest_info = get_pest_summary(field)
     generate_daily_tasks_for_field(user, field, pest_info, weather, base_date)
     return JsonResponse({"status": "daily generated"})
@@ -48,7 +49,7 @@ def manual_generate_biweekly(request):
     field = Field.objects.get(field_id=data["field_id"])
     user = User.objects.get(id=data["owner_id"])
     today = datetime.today().date()
-    region = extract_region(field.field_address)
+    region = extract_weather_region(field.field_address)
     weather = get_weather_for_range(region, today)
     keywords = get_month_keywords(field)
     pest_info = get_pest_summary(field)

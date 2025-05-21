@@ -12,7 +12,7 @@ from konlpy.tag import Okt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from todolist.utils import create_task_progress_entries
+from .utils import create_task_progress_entries
 
 
 openai.api_key = settings.OPENAI_API_KEY
@@ -151,7 +151,6 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
     )
     task_names = [t.task_name for t in prev_tasks]
     summary = ", ".join(task_names) if task_names else "없음"
-
     prompt = f"""
 날짜: {base_date.strftime("%Y-%m-%d")}
 작물: {field.crop_name}

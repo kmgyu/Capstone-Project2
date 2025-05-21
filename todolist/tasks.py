@@ -9,13 +9,12 @@ from .utils import (
     get_pest_summary,
     get_weather,
     get_weather_for_range,
-    extract_region
+    extract_weather_region
 )
 
 from celery import shared_task
 from fieldmanage.models import Field
 from django.contrib.auth import get_user_model
-from django.utils.timezone import localtime
 from datetime import datetime
 
 User = get_user_model()
@@ -25,7 +24,7 @@ User = get_user_model()
 def run_generate_daily_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
-    region = extract_region(field.field_address)
+    region = extract_weather_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
@@ -49,7 +48,7 @@ def run_generate_monthly_keywords_and_tasks():
 def run_generate_biweekly_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
-    region = extract_region(field.field_address)
+    region = extract_weather_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
         for field in fields:
