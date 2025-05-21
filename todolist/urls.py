@@ -6,8 +6,8 @@ from .views import (
     MonthlyFieldTodoAPIView,
     AllFieldTodosAPIView,
     DailyTodosAPIView,
+    FieldTodayInfoAPIView
 )
-
 from todolist import gpt_views
 # from .tasks import create_task_from_gpt
 
@@ -23,8 +23,11 @@ urlpatterns = [
     # 모든 할 일 조회 및 파라미터 추가 시 기간 필터링 후 조회(GET), 할 일 생성(POST)
     path('todos/<int:field_id>/list/', FieldTodoListAPIView.as_view(), name='todo-list-by-field'),
     
-    # 한달 할 일 조회
+    # 특정 노지의 한달 할 일 조회
     path('todos/monthly/<int:field_id>/', MonthlyFieldTodoAPIView.as_view()),
+    
+    # 특정 노지의 오늘 할 일 조회, 이번 달 진행도, 오늘 진행도, 키워드 조회 
+    path('todos/fields/<int:field_id>/today-info/', FieldTodayInfoAPIView.as_view(), name='field-today-info'),
 
     # 특정 할 일 한 건 조회/수정/삭제
     path('todos/task/<int:task_id>/', FieldTodoDetailAPIView.as_view(), name='todo-detail'),

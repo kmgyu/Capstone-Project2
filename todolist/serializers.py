@@ -26,4 +26,26 @@ class TaskProgressUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=[('done', '완료'), ('skip', '미수행')])
     
 
+class FieldTodoSerializer(serializers.ModelSerializer):
+    owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    field = serializers.PrimaryKeyRelatedField(queryset=Field.objects.all())
+    start_date = serializers.SerializerMethodField()
+    progresses = serializers.SerializerMethodField()  # ✅ 커스텀으로 바꿈
 
+    def get_start_date(self, obj):
+        return obj.start_date.date()
+
+    def get_progresses(self, obj):
+        today = self.context.get("today")
+        if not today:
+            return []
+
+        progress = TaskProgress.objects.filter(task_id=obj, date=today).first()
+        if not progress:
+            return []
+        return [FilteredProgressSerializer(progress).data]
+
+    class Meta:
+        model = FieldTodo
+        fields = '__all__'
+        depth = 1

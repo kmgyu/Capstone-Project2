@@ -11,10 +11,81 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
+from collections import Counter
 
 from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
 from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
+
+
+from django.utils.timezone import make_aware, localtime
+
+class FieldTodayInfoAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, field_id):
+        user = request.user
+        field = get_object_or_404(Field, pk=field_id, owner=user)
+
+        today = datetime.today().date()
+        year, month = today.year, today.month
+
+        # 오늘의 할 일 필터링
+        todos = FieldTodo.objects.filter(owner=user, field=field)
+        today_tasks = []
+        for todo in todos:
+            task_dates = [(todo.start_date + timedelta(days=i)).date() for i in range(todo.period or 1)]
+            if today in task_dates:
+                today_tasks.append(todo)
+
+        today_task_serialized = FieldTodoSerializer(today_tasks, many=True).data
+
+        # 오늘 진행률 계산
+        done_today = TaskProgress.objects.filter(
+            task_id__in=[t.task_id for t in today_tasks],
+            date=today,
+            status='done'
+        ).count()
+        total_today = len(today_tasks)
+        today_progress_rate = int((done_today / total_today) * 100) if total_today > 0 else 0
+
+        # 월간 키워드
+        keywords = []
+        try:
+            mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
+            keywords = mk.keywords
+        except MonthlyKeyword.DoesNotExist:
+            pass
+
+        # 월간 전체 진행률
+        month_start = make_aware(datetime(year, month, 1))
+        _, last_day = calendar.monthrange(year, month)
+        month_end = make_aware(datetime(year, month, last_day, 23, 59, 59))
+
+        monthly_tasks = FieldTodo.objects.filter(
+            owner=user,
+            field=field,
+            start_date__range=(month_start, month_end)
+        )
+
+        all_progresses = TaskProgress.objects.filter(
+            task_id__in=monthly_tasks,
+            date__range=(month_start.date(), month_end.date())
+        )
+
+        done_total = all_progresses.filter(status='done').count()
+        total_progress = all_progresses.count()
+        monthly_progress_rate = int((done_total / total_progress) * 100) if total_progress > 0 else 0
+
+        return Response({
+            "today_tasks": today_task_serialized,
+            "today_progress_rate": today_progress_rate,
+            "monthly_keywords": keywords,
+            "monthly_progress_rate": monthly_progress_rate
+        })
+
+
+
 
 # 한달 할 일 조회
 class MonthlyFieldTodoAPIView(APIView):
@@ -56,8 +127,7 @@ class MonthlyFieldTodoAPIView(APIView):
             "todos": FieldTodoSerializer(todos, many=True).data,
             "keywords": keywords
         })
-    
-from collections import Counter
+
 
 class AllFieldTodosAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -96,7 +166,7 @@ class AllFieldTodosAPIView(APIView):
 
         for field in fields:
             try:
-                mk = MonthlyKeyword.objects.get(field=field, year=year, month=month)
+                mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
                 for kw in mk.keywords:
                     if isinstance(kw, dict) and 'keyword' in kw:
                         keyword_counter[kw['keyword']] += 1

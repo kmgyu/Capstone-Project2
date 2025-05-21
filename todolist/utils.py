@@ -7,19 +7,25 @@ from collections import defaultdict
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from konlpy.tag import Okt
+from django.utils.timezone import is_aware, make_naive
+
 
 def create_task_progress_entries(task: FieldTodo):
     if not task.start_date or not task.period:
         return
 
-    for i in range(0, task.period):
-        date = (task.start_date + timedelta(days=i)).date()
+    base_datetime = task.start_date
+    if is_aware(base_datetime):
+        base_datetime = make_naive(base_datetime)  # UTC → 로컬 시간으로 naive 처리
+
+    base_date = base_datetime.date()  # 정확한 날짜 추출
+    for i in range(task.period):
+        date = base_date + timedelta(days=i)
         TaskProgress.objects.get_or_create(
             task_id=task,
             date=date,
             defaults={'status': 'skip'}
         )
-
 def extract_region(address: str) -> str:
     """
     주소에서 시/도(ex: 서울특별시, 광주광역시)만 추출
@@ -70,6 +76,7 @@ def get_pest_summary(field):
 
 okt = Okt()
 
+# 전체 불러오기하고 day별로 나눔눔
 def expand_tasks_by_date(todos):
     """
     모든 FieldTodo를 날짜별로 확장
@@ -83,21 +90,25 @@ def expand_tasks_by_date(todos):
     return date_map
 
 
+# 전체 불러오기 전에 내용, 이름 중복 검사해서 제외
 def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
     final_result = []
 
     for date in sorted(date_map.keys()):
         tasks = date_map[date]
 
-        # ⬇️ 작업명 + 내용 결합
-        texts = [f"{t.task_name} {t.task_content or ''}" for t in tasks]
+        task_names = [t.task_name for t in tasks]
+        task_contents = [t.task_content or "" for t in tasks]
 
-        # TF-IDF 벡터화
-        vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None, ngram_range=(1, 2))
-        tfidf_matrix = vectorizer.fit_transform(texts)
+        # 각각 벡터화
+        name_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
+        content_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
 
-        # 유사도 행렬 계산
-        sim_matrix = cosine_similarity(tfidf_matrix)
+        name_matrix = name_vectorizer.fit_transform(task_names)
+        content_matrix = content_vectorizer.fit_transform(task_contents)
+
+        name_sim = cosine_similarity(name_matrix)
+        content_sim = cosine_similarity(content_matrix)
 
         used = [False] * len(tasks)
         kept = []
@@ -109,15 +120,15 @@ def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
             kept.append(base_task)
             used[i] = True
 
-            # i와 유사한 나머지 제거
             for j in range(i + 1, len(tasks)):
-                if not used[j] and sim_matrix[i][j] >= threshold:
+                if used[j]:
+                    continue
+                if name_sim[i][j] >= threshold or content_sim[i][j] >= threshold:
                     used[j] = True
 
             if len(kept) >= max_per_day:
                 break
 
-        # 직렬화 및 날짜 포함
         for task in kept:
             serialized = FieldTodoSerializer(task).data
             serialized["date"] = str(date)
