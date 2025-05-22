@@ -11,10 +11,11 @@ def get_ultra_short_forecast_all(lat, lon):
 
     if minute < 40:
         base_time = (now - datetime.timedelta(hours=1)).replace(minute=0).strftime("%H%M")
+        print(base_time)
     else:
         base_time = now.replace(minute=0).strftime("%H%M")
     base_date = now.strftime("%Y%m%d")
-
+    print("🗓️ base_date =", base_date)
     api_key = getattr(settings, "WEATHER_API_KEY", None)
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
     params = {
