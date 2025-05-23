@@ -10,6 +10,8 @@ from django.utils.timezone import make_aware
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from PIL import Image
@@ -51,18 +53,26 @@ def get_dynamic_path(user_id, field_id):
     return field_dir
 
 class UploadFieldPicAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []  # ⬅️ 인증 완전히 비활성화
+
+    permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
+        field_id = request.data.get('field_id')
+
+        if not field_id:
+            return Response({'error': 'field_id is required'}, status=400)
+
+        try:
+            field = Field.objects.get(pk=field_id)
+        except Field.DoesNotExist:
+            return Response({'error': 'Invalid field_id'}, status=400)
+
         serializer = FieldPicSerializer(data=request.data)
         if serializer.is_valid():
-            instance = serializer.save()
-
-            field_id = request.data.get('field_id')
-            field = Field.objects.get(pk=field_id)
-            instance.field = field
-
+            instance = serializer.save(field=field)  
+            
             image_file = request.FILES.get('pic_path')
             if image_file:
                 img = Image.open(image_file)
@@ -87,6 +97,7 @@ class UploadFieldPicAPIView(APIView):
                 # DB에 저장
                 instance.pic_path = normalized_path
                 instance.save()
+
                 #redis연결되어야 사진 보내진다는 것
                 #enqueue_pic_path_task.delay(instance.field_pic_id)
 
@@ -100,11 +111,12 @@ class UploadFieldPicAPIView(APIView):
                     'longitude': instance.longitude,
                     'latitude': instance.latitude,
                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'user': request.user.username
+                    'field_id': field_id,
+                    'user_id': field.owner.id
                 }
             })
         else:
-            return Response({'status': 'error', 'errors': form.errors}, status=400)
+            return Response({'status': 'error', 'errors': serializer.errors}, status=400)
 
 class FlaskResultUpdateAPIView(APIView):
     permission_classes = [AllowAny]
