@@ -52,7 +52,7 @@ CUSTOM_APPS = [
     'accounts',
     'photoapp',
     'weather',  # ← ✅ 이거 추가하세요!
-
+    'dronemanage',
 ]
 
 THIRD_PARTY_APPS = [

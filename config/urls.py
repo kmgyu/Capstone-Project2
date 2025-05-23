@@ -30,6 +30,7 @@ urlpatterns = [
     path("todo/", include("todolist.urls")),
     path('photo/', include('photoapp.urls')),  
     path('weather/', include('weather.urls')),  
+    path('drone/', include("dronemanage.urls")),
 
 ]
 
