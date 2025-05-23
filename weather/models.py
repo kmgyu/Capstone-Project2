@@ -6,6 +6,11 @@ class Weather(models.Model):
     weather = models.CharField(max_length=50, default="정보없음")
     temperature_avg = models.FloatField()
     precipitation = models.FloatField()
+    
+    # ✅ 새로 추가
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
