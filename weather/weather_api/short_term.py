@@ -9,12 +9,17 @@ def get_ultra_short_forecast_all(lat, lon):
     now = datetime.datetime.now()
     minute = now.minute
 
+    base_datetime= now.replace(minute=0, second=0, microsecond=0
+    )
     if minute < 40:
-        base_time = (now - datetime.timedelta(hours=1)).replace(minute=0).strftime("%H%M")
-    else:
-        base_time = now.replace(minute=0).strftime("%H%M")
-    base_date = now.strftime("%Y%m%d")
+        base_datetime -= datetime.timedelta(hours=1)
 
+    base_date = base_datetime.strftime("%Y%m%d")
+    base_time = base_datetime.strftime("%H%M")
+
+    print("🗓️ base_date =", base_date)
+    print("🕒 base_time =", base_time)
+    
     api_key = getattr(settings, "WEATHER_API_KEY", None)
     url = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst"
     params = {
@@ -35,12 +40,8 @@ def get_ultra_short_forecast_all(lat, lon):
         print("❌ 기상청 API 호출 오류:", e)
         return None
 
-    print(f"📦 받은 예보 item 수: {len(items)}")
-    print("✅ base_date =", base_date)
-
     result = {}
     for item in items:
-        print("🕓 예보 시각 =", item['fcstDate'], item['fcstTime'], item['category'])
 
         if item['fcstDate'] != base_date:
             continue
@@ -52,7 +53,7 @@ def get_ultra_short_forecast_all(lat, lon):
         if hour not in result:
             result[hour] = {"TMP": None, "PTY": None, "SKY": None}
 
-        if category == "T1H":  # ✅ T1H를 TMP로 간주
+        if category == "T1H":  
             result[hour]["TMP"] = value
         elif category in result[hour]:
             result[hour][category] = value

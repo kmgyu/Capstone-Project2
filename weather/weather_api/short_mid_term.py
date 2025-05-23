@@ -66,7 +66,6 @@ def get_short_term(lat, lon):
             except:
                 continue
 
-    # ✅ 일자별 평균 기온과 날씨 텍스트 추출
     summary = []
     for date, values in result.items():
         temp = sum(values['TMP']) / len(values['TMP']) if values['TMP'] else 0.0
@@ -131,6 +130,7 @@ def get_mid_term(region_name):
             "weather": weather
         })
 
+        
     return result
 
 
@@ -164,4 +164,6 @@ def get_combined_weather(lat, lon, region_name):
         combined.append(forecast)
 
     print(f"[DEBUG] get_combined_weather: region_name={region_name}, lat={lat}, lon={lon}")
+    print("[DEBUG] short_term 날짜들:", list(short_dict.keys()))
+    print("[DEBUG] mid_term 날짜들:", list(mid_dict.keys()))
     return combined
