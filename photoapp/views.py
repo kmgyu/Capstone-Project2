@@ -106,24 +106,8 @@ class UploadFieldPicAPIView(APIView):
         else:
             return Response({'status': 'error', 'errors': form.errors}, status=400)
 
-class FlaskResultUpdateAPIView(APIView):
-    permission_classes = [AllowAny]
 
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            for item in data:
-                photo_id = item.get("photo_id")
-                pest = item.get("pest")
-                disease = item.get("disease")
 
-                FieldPic.objects.filter(field_pic_id=photo_id).update(
-                    has_pest=pest,
-                    has_disease=disease
-                )
-            return Response({"status": "updated"})
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
 class FieldSummaryAPIView(APIView):
     permission_classes = [AllowAny]
 
