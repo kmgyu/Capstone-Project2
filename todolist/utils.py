@@ -76,7 +76,7 @@ def get_pest_summary(field):
 
 okt = Okt()
 
-# 전체 불러오기하고 day별로 나눔눔
+# 전체 불러오기하고 day별로 나눔
 def expand_tasks_by_date(todos):
     """
     모든 FieldTodo를 날짜별로 확장
@@ -89,27 +89,21 @@ def expand_tasks_by_date(todos):
             date_map[day].append(task)
     return date_map
 
+# 띄어쓰기 기준으로 중복 검사 함수
+def is_overlap_similar(a: str, b: str, threshold=0.5):
+    set_a = set(a.split())
+    set_b = set(b.split())
+    if not set_a or not set_b:
+        return False
+    overlap = len(set_a & set_b) / min(len(set_a), len(set_b))
+    return overlap >= threshold
 
-# 전체 불러오기 전에 내용, 이름 중복 검사해서 제외
-def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
+
+def deduplicate_tasks_per_day(date_map, max_per_day=2):
     final_result = []
 
     for date in sorted(date_map.keys()):
         tasks = date_map[date]
-
-        task_names = [t.task_name for t in tasks]
-        task_contents = [t.task_content or "" for t in tasks]
-
-        # 각각 벡터화
-        name_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
-        content_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
-
-        name_matrix = name_vectorizer.fit_transform(task_names)
-        content_matrix = content_vectorizer.fit_transform(task_contents)
-
-        name_sim = cosine_similarity(name_matrix)
-        content_sim = cosine_similarity(content_matrix)
-
         used = [False] * len(tasks)
         kept = []
 
@@ -123,7 +117,8 @@ def deduplicate_tasks_per_day(date_map, max_per_day=2, threshold=0.85):
             for j in range(i + 1, len(tasks)):
                 if used[j]:
                     continue
-                if name_sim[i][j] >= threshold or content_sim[i][j] >= threshold:
+                if is_overlap_similar(tasks[i].task_name, tasks[j].task_name) or \
+                   is_overlap_similar(tasks[i].task_content or "", tasks[j].task_content or ""):
                     used[j] = True
 
             if len(kept) >= max_per_day:
