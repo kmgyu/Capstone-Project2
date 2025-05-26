@@ -184,11 +184,11 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
 [판단 스텝]
 1. 입력된 월({base_date.month})을 기준으로 현재 계절을 판별합니다. 예: 3~5월 → 봄, 6~8월 → 여름
 2. 작물({field.crop_name})과 월 정보를 통해 생육 단계를 추론합니다.
-3. 생육 단계와 월에 따라 일반적으로 수행되는 주요 작업을 도출합니다.
+3. 생육 단계와 월, 노지의 주소인 {field.field_address}에 따라 일반적으로 수행되는 주요 작업을 도출합니다.
 4. 제공된 키워드({', '.join(keywords)})를 참고하여 시기적으로 반드시 수행해야 하는 작업들을 우선 고려합니다.
 5. 날씨 정보({weather})를 활용해 작업 일정을 조정합니다. 예: 비 오는 날 전날에 물주기를 수행
 6. 최근 작업 내역({summary})을 참고해 동일 작업 간 최소 3~5일 이상 간격을 유지합니다.
-7. 가장 중요한 작업을 앞쪽 날짜에 우선 배치합니다.
+7. 하루마다 가장 중요한 작업을 우선 배치합니다.
 
 [출력 예시 형식]
 [
@@ -210,7 +210,7 @@ def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date
     response = openai.ChatCompletion.create(
         model=GPT,
         messages=[
-            {"role": "system", "content": "너는 전문 농업 컨설턴트야야."},
+            {"role": "system", "content": "너는 전문 농업 컨설턴트야."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.4,
@@ -268,6 +268,7 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
 2. 날씨({weather_info})가 비 또는 고온일 경우 병해충 방제, 물주기, 통풍 확보 등의 작업을 우선 고려합니다.
 3. pest_info에 포함된 주요 병해충이 있다면, 해당 병해충에 대응하는 작업을 우선 출력합니다.
 4. 하루 최대 3개 작업만 생성하며, 모두 오늘 실행 가능한 작업이어야 합니다.
+5. 병충해 관련 대응 작업은 병해충 정보인 {pest_info}에 맞는 구체적인 대응 작업을 생성해야합니다.(병충해 작업에 맞는 약품, 도구까지 알려주는 정도로 구체적이어야합니다.)
 
 [출력 예시 형식]
 [
