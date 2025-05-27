@@ -80,7 +80,7 @@ def get_month_keywords(field):
 
 def get_pest_summary(field):
     # TODO: 병해충 분석 로직 연결 시 여기에 구현
-    return "진딧물, 응애 발생 기록 있음 (예시)"
+    return "상추 모자이크병"
 
 
 okt = Okt()

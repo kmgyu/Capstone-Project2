@@ -52,9 +52,8 @@ def manual_generate_biweekly(request):
     region = extract_weather_region(field.field_address)
     weather = get_weather_for_range(region, today)
     keywords = get_month_keywords(field)
-    pest_info = get_pest_summary(field)
     base_date = datetime.today().date()
-    generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date)
+    generate_biweekly_tasks(user, field, weather, keywords, base_date)
     return JsonResponse({"status": "biweekly generated"})
 
 

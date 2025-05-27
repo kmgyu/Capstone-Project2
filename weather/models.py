@@ -5,14 +5,17 @@ class Weather(models.Model):
     date = models.DateField()
     weather = models.CharField(max_length=50, default="정보없음")
     temperature_avg = models.FloatField()
-    temperature_max = models.FloatField()
-    temperature_min = models.FloatField()
     precipitation = models.FloatField()
+    
+    # ✅ 새로 추가
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('region_name', 'date')
-        db_table = 'weather_info'
+        db_table = 'mid_weather'
 
 class HourlyWeather(models.Model):
     region_name = models.CharField(max_length=100)

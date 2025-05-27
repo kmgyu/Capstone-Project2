@@ -14,6 +14,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from .utils import create_task_progress_entries
 
+import pytz
+KST = pytz.timezone("Asia/Seoul")
 
 openai.api_key = settings.OPENAI_API_KEY
 User = get_user_model()
@@ -26,19 +28,27 @@ today = datetime.today().date()
 
 
 # -------- 공통 유틸 함수 -------- #
-def is_duplicate_by_cosine(new_task_name, new_task_content, existing_tasks, threshold=0.85):
-    # 작업명 + 내용 결합
-    new_text = f"{new_task_name} {new_task_content}"
-    existing_texts = [f"{t.task_name} {t.task_content or ''}" for t in existing_tasks]
+def is_duplicate_by_cosine(name, content, existing_tasks, threshold=0.75):
 
-    if not existing_texts:
-        return False
+    name_texts = [t.task_name for t in existing_tasks]
+    content_texts = [t.task_content or '' for t in existing_tasks]
 
+    # 이름 유사도
     vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
-    vectors = vectorizer.fit_transform([new_text] + existing_texts)
-    similarity = cosine_similarity(vectors[0:1], vectors[1:])
+    name_vectors = vectorizer.fit_transform([name] + name_texts)
+    name_similarity = cosine_similarity(name_vectors[0:1], name_vectors[1:])
 
-    return any(score >= threshold for score in similarity[0])
+    if any(score >= threshold for score in name_similarity[0]):
+        return True  # 이름 유사도 기준 충족 시 중복
+
+    # 내용 유사도
+    content_vectors = vectorizer.fit_transform([content] + content_texts)
+    content_similarity = cosine_similarity(content_vectors[0:1], content_vectors[1:])
+
+    if any(score >= threshold for score in content_similarity[0]):
+        return True  # 내용 유사도 기준 충족 시 중복
+
+    return False
 
 
 def save_task(user, field, task_data, start_date):
@@ -142,7 +152,7 @@ def generate_month_keywords(field, base_date):
         return []
 
 # -------- 2. 2주치 할 일 생성 -------- #
-def generate_biweekly_tasks(user, field, pest_info, weather, keywords, base_date):
+def generate_biweekly_tasks(user, field, weather, keywords, base_date):
     last_week = base_date - timedelta(days=7)
 
     prev_tasks = FieldTodo.objects.filter(
@@ -264,7 +274,7 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
 - 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
 
 [판단 스텝]
-1. 작물({field.crop_name})과 오늘 날짜({today}) 기준으로 현재 시기의 병해충 위험도를 고려합니다.
+1. 작물({field.crop_name})과 오늘 날짜({base_date.strftime("%Y-%m-%d")}) 기준으로 현재 시기의 병해충 위험도를 고려합니다.
 2. 날씨({weather_info})가 비 또는 고온일 경우 병해충 방제, 물주기, 통풍 확보 등의 작업을 우선 고려합니다.
 3. pest_info에 포함된 주요 병해충이 있다면, 해당 병해충에 대응하는 작업을 우선 출력합니다.
 4. 하루 최대 3개 작업만 생성하며, 모두 오늘 실행 가능한 작업이어야 합니다.
@@ -292,6 +302,7 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
         temperature=0.2,
         max_tokens=600
     )
+
     try:
         parsed = json.loads(response['choices'][0]['message']['content'])
     except Exception as e:
