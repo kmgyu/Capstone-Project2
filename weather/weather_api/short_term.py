@@ -6,6 +6,7 @@ from weather.utils import convert_to_grid
 
 def get_ultra_short_forecast_all(lat, lon):
     nx, ny = convert_to_grid(lat, lon)
+
     now = datetime.datetime.now()
     minute = now.minute
 
@@ -41,9 +42,11 @@ def get_ultra_short_forecast_all(lat, lon):
         return None
 
     result = {}
+    allowed_dates = [base_date, (base_datetime + datetime.timedelta(days=1)).strftime("%Y%m%d")]
+
     for item in items:
 
-        if item['fcstDate'] != base_date:
+        if item['fcstDate'] not in allowed_dates:  # ✅ 수정됨
             continue
 
         hour = int(item['fcstTime'][:2])

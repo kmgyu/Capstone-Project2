@@ -168,7 +168,6 @@ class UploadFieldPicAPIView(APIView):
                     'pic_path': instance.pic_path,
                     'longitude': instance.longitude,
                     'latitude': instance.latitude,
-<<<<<<< HEAD
                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S') if instance.pic_time else None,
                     'field_id': field.field_id,
                     'user_id': field.owner.id
