@@ -21,6 +21,7 @@ import './css/App.css';
 import './css/AuthStyles.css';
 import authService from './services/authService';
 import fieldService from './services/fieldService'; // 필드 API 서비스
+import PestDiseaseMap from './components/PestDiseaseMap';
 // Router hooks를 사용하는 별도의 컴포넌트
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -385,7 +386,7 @@ function AppRoutes() {
           <div className="container">
             <HeroSection />
             <Dashboard />
-            <Slider />
+            <PestDiseaseMap />
           </div>
         </main>
       </div>
