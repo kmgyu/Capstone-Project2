@@ -110,7 +110,7 @@ const Header = ({ onLogout }) => {
             // icon={faDrone} 
             style={{ color: 'var(--primary-color)', fontSize: '28px' }} 
           />
-          <h1>농업드론관리</h1>
+          <h1>EarlyBird</h1>
         </div>
         
         <ul className={`nav-menu ${showMobileMenu ? 'show-mobile-menu' : ''}`}>

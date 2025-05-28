@@ -6,7 +6,7 @@ export default function HeroSection() {
   const [todos, setTodos] = useState([
     { id: 1, text: '비료 살포', completed: true },
     { id: 2, text: '작물 상태 점검', completed: true },
-    { id: 3, text: '드론 배터리 충전', completed: true },
+    { id: 3, text: '잡초 제거', completed: true },
   ]);
 
   const toggleTodo = (id) => {
@@ -66,11 +66,11 @@ export default function HeroSection() {
       <div className="todos-section">
         <div className="todo-header">
           <div className="section-header">
-            <CheckCircle /> 오늘의 할 일
+            <CheckCircle /> 오늘의 일정
           </div>
           
           <button className="add-todo-button">
-            + 할 일 추가하기
+            + 일정 추가
           </button>
         </div>
         

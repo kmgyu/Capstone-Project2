@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faChevronRight, 
@@ -7,41 +7,90 @@ import {
   faSeedling
 } from '@fortawesome/free-solid-svg-icons';
 import '../css/Sidebar.css';
+import AddFarmlandModal from './AddFarmlandModal';
+import farmlandService from '../services/farmlandService';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const [farmlands, setFarmlands] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingFarmland, setEditingFarmland] = useState(null);
 
-  // 임시 노지 데이터
-  const farmlands = [
-    {
-      id: 1,
-      title: '논 1구역',
-      description: '벼농사 주요 재배지. 면적 3,500㎡',
-      image: process.env.PUBLIC_URL + '/logo192.png',
-    },
-    {
-      id: 2,
-      title: '밭작물 A구역',
-      description: '콩, 감자 재배 지역. 면적 2,200㎡',
-      image: process.env.PUBLIC_URL + '/logo192.png',
-    },
-    {
-      id: 3,
-      title: '비닐하우스 단지',
-      description: '딸기, 토마토 재배. 6개동 운영중',
-      image: process.env.PUBLIC_URL + '/logo192.png',
-    },
-    {
-      id: 4,
-      title: '과수원 지역',
-      description: '사과, 배 재배. 총 120그루',
-      image: process.env.PUBLIC_URL + '/logo192.png',
-    },
-  ];
+  // 노지 불러오기
+  const fetchFarmlands = async () => {
+    setLoading(true);
+    setError(null);
+    const result = await farmlandService.getAllFields();
+    if (result.success) {
+      console.log(result.data);
+      setFarmlands(result.data); // API 응답 데이터 사용
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
+  };
 
-  // 노지 추가 핸들러 (임시 함수)
+  useEffect(() => {
+    fetchFarmlands();
+  }, []);
+
+  // 노지 추가 핸들러
   const handleAddFarmland = () => {
-    alert('노지 추가 기능 구현 예정입니다.');
-    // 여기에 노지 추가 모달 또는 페이지 이동 로직 구현
+    setShowAddModal(true);
+  };
+
+  // 노지 추가 저장
+  const handleSaveFarmland = async (newFieldData) => {
+    const result = await farmlandService.createField(newFieldData);
+    if (result.success) {
+      setShowAddModal(false);
+      fetchFarmlands(); // 새로고침
+    } else {
+      alert('노지 추가 실패: ' + result.error);
+    }
+  };
+
+  // 삭제
+  const handleDeleteFarmland = async (field_id) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    const result = await farmlandService.deleteField(field_id);
+    if (result.success) {
+      setFarmlands(farmlands => farmlands.filter(f => f.field_id !== field_id));
+    } else {
+      alert('삭제 실패: ' + result.error);
+    }
+  };
+
+  // 편집 핸들러
+  const handleEditFarmland = async (farmland) => {
+    try {
+      // GET 요청으로 상세 정보 불러오기
+      const result = await farmlandService.getFieldById(farmland.field_id);
+      
+      if (result.success) {
+        setEditingFarmland(result.data); // 상세 데이터 설정
+        setShowEditModal(true);
+      } else {
+        alert('노지 정보 조회 실패: ' + result.error);
+      }
+    } catch (error) {
+      console.error('노지 정보 조회 중 오류:', error);
+      alert('노지 정보를 불러오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 노지 수정 저장
+  const handleUpdateFarmland = async (updatedFieldData) => {
+    const result = await farmlandService.updateField(editingFarmland.field_id, updatedFieldData);
+    if (result.success) {
+      setShowEditModal(false);
+      setEditingFarmland(null);
+      fetchFarmlands(); // 새로고침
+    } else {
+      alert('노지 수정 실패: ' + result.error);
+    }
   };
 
   return (
@@ -62,34 +111,72 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <FontAwesomeIcon icon={faPlus} /> 노지 추가
             </button>
           </h3>
-          
         </div>
+        
+        {/* 로딩/에러 표시 */}
+        {loading && <div className="loading-message">불러오는 중...</div>}
+        {error && <div className="error-message">{error}</div>}
         
         {/* 노지 목록 */}
         <div className="farmland-list">
-          {farmlands.map(farmland => (
-            <div key={farmland.id} className="farmland-item">
-              <div className="farmland-image">
-                <img src={farmland.image} alt={farmland.title} />
-              </div>
-              <div className="farmland-info">
-                <h4 className="farmland-title">{farmland.title}</h4>
-                <p className="farmland-description">{farmland.description}</p>
-                <div className="farmland-actions">
-                  <button className="action-button edit">
-                    <span>편집</span>
-                  </button>
-                  <button className="action-button delete">
-                    <span>삭제</span>
-                  </button>
+          {farmlands.length > 0 ? (
+            farmlands.map(farmland => (
+              <div key={farmland.field_id} className="farmland-item">
+                <div className="farmland-image">
+                  <img 
+                    src={farmland.image_url ? farmland.image_url : process.env.PUBLIC_URL + '/logo192.png'} 
+                    alt={farmland.field_name} 
+                  />
+                </div>
+                <div className="farmland-info">
+                  <h4 className="farmland-title">{farmland.field_name}</h4>
+                  <p className="farmland-description">{farmland.description}</p>
+                  <div className="farmland-actions">
+                    <button 
+                      className="action-button edit"
+                      onClick={() => handleEditFarmland(farmland)}
+                    >
+                      <span>편집</span>
+                    </button>
+                    <button 
+                      className="action-button delete"
+                      onClick={() => handleDeleteFarmland(farmland.field_id)}
+                    >
+                      <span>삭제</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            !loading && (
+              <div className="no-farmlands">
+                <p>등록된 농지가 없습니다.</p>
+                <p className="sub-text">농지를 추가해보세요.</p>
+              </div>
+            )
+          )}
         </div>
-        
-        
       </div>
+
+      {/* 농지 추가 모달 */}
+      <AddFarmlandModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAddFarmland={handleSaveFarmland}
+      />
+
+      {/* 농지 편집 모달 */}
+      <AddFarmlandModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingFarmland(null);
+        }}
+        onAddField={handleUpdateFarmland}
+        initialData={editingFarmland}
+        isEditMode={true}
+      />
     </div>
   );
 };

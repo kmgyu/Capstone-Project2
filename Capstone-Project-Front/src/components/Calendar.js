@@ -250,7 +250,7 @@ const Calendar = ({
   // 컴포넌트 렌더링
   return (
     <section className="calendar-section">
-      <h3 className="section-title">작업 캘린더</h3>
+      <h3 className="section-title">일정 캘린더</h3>
       <div className="calendar-header">
         <div className="calendar-title" id="calendar-month-year">
           {currentMoment.format('YYYY년 M월')}

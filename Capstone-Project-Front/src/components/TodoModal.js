@@ -69,7 +69,7 @@ const TodoModal = ({
           <div className="todo-header">
             <h3 className="todo-list-title">일정 목록</h3>
             <button className="add-todo-button" onClick={openAddModal}>
-              <FontAwesomeIcon icon={faPlus} /> 할일 추가
+              <FontAwesomeIcon icon={faPlus} /> 일정 추가
             </button>
           </div>
           
