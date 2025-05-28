@@ -10,6 +10,8 @@ from django.utils.timezone import make_aware
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from PIL import Image
@@ -72,6 +74,11 @@ def get_dynamic_path(user_id, field_id):
     return field_dir
 
 class UploadFieldPicAPIView(APIView):
+<<<<<<< HEAD
+=======
+    authentication_classes = []  # ⬅️ 인증 완전히 비활성화
+
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
     permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -84,6 +91,7 @@ class UploadFieldPicAPIView(APIView):
         try:
             field = Field.objects.get(pk=field_id)
         except Field.DoesNotExist:
+<<<<<<< HEAD
             return Response({'error': 'Invalid field_id'}, status=404)
 
         serializer = FieldPicSerializer(data=request.data)
@@ -91,6 +99,14 @@ class UploadFieldPicAPIView(APIView):
         if serializer.is_valid():
             instance = serializer.save(field=field)
 
+=======
+            return Response({'error': 'Invalid field_id'}, status=400)
+
+        serializer = FieldPicSerializer(data=request.data)
+        if serializer.is_valid():
+            instance = serializer.save(field=field)  
+            
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
             image_file = request.FILES.get('pic_path')
             if image_file:
                 try:
@@ -117,6 +133,13 @@ class UploadFieldPicAPIView(APIView):
                     instance.pic_path = normalized_path
                     instance.save()
 
+<<<<<<< HEAD
+=======
+                # DB에 저장
+                instance.pic_path = normalized_path
+                instance.save()
+
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
                 #redis연결되어야 사진 보내진다는 것
                 #enqueue_pic_path_task.delay(instance.field_pic_id)
                 except Exception as e:
@@ -131,15 +154,24 @@ class UploadFieldPicAPIView(APIView):
                     'pic_path': instance.pic_path,
                     'longitude': instance.longitude,
                     'latitude': instance.latitude,
+<<<<<<< HEAD
                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S') if instance.pic_time else None,
                     'field_id': field.field_id,
                     'user_id': field.owner.id
 
+=======
+                    'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'field_id': field_id,
+                    'user_id': field.owner.id
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
                 }
             })
         else:
             return Response({'status': 'error', 'errors': serializer.errors}, status=400)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
 
 
 
