@@ -12,9 +12,22 @@ class FieldPic(models.Model):
     longitude = models.FloatField(null=True)
     pic_time = models.DateTimeField(null=True)
 
-    # Flask에서 분석 결과 반영할 필드
-    has_pest = models.BooleanField(null=True)
-    has_disease = models.BooleanField(null=True)
 
     class Meta:
         db_table = "photoapp_fieldpic"
+        
+class PestResult(models.Model):
+    field_pic = models.ForeignKey(FieldPic, on_delete=models.CASCADE, related_name='pest_results')
+    pest_name = models.CharField(max_length=100)
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "pest_result"
+
+class DiseaseResult(models.Model):
+    field_pic = models.ForeignKey(FieldPic, on_delete=models.CASCADE, related_name='disease_results')
+    disease_name = models.CharField(max_length=100)
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "disease_result"

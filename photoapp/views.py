@@ -20,6 +20,14 @@ from .models import FieldPic
 from fieldmanage.models import Field
 from .tasks import enqueue_pic_path_task
 
+def convert_to_degrees(value):
+
+    d = float(value[0][0]) / float(value[0][1])
+    m = float(value[1][0]) / float(value[1][1])
+    s = float(value[2][0]) / float(value[2][1])
+    
+    return d + (m / 60.0) + (s / 3600.0)
+
 
 def extract_exif_data(img):
     try:
@@ -37,8 +45,21 @@ def extract_exif_data(img):
                     gps_data[sub_tag] = value[t]
 
         lat = gps_data.get('GPSLatitude')
+        lat_ref = gps_data.get('GPSLatitudeRef')
         lon = gps_data.get('GPSLongitude')
-        return lat, lon, pic_time
+        lon_ref = gps_data.get('GPSLongitudeRef')
+
+        latitude = convert_to_degrees(lat) if lat else None
+        longitude = convert_to_degrees(lon) if lon else None
+
+        if latitude and lat_ref == 'S':
+            latitude = -latitude
+        if longitude and lon_ref == 'W':
+            longitude = -longitude
+
+        return latitude, longitude, pic_time
+
+
     except Exception as e:
         print(f"EXIF error: {e}")
         return None, None, None
@@ -51,44 +72,55 @@ def get_dynamic_path(user_id, field_id):
     return field_dir
 
 class UploadFieldPicAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        serializer = FieldPicSerializer(data=request.data)
-        if serializer.is_valid():
-            instance = serializer.save()
+        field_id = request.data.get('field_id')
 
-            field_id = request.data.get('field_id')
+        if not field_id:
+            return Response({'error': 'field_id is required'}, status=400)
+
+        try:
             field = Field.objects.get(pk=field_id)
-            instance.field = field
+        except Field.DoesNotExist:
+            return Response({'error': 'Invalid field_id'}, status=404)
+
+        serializer = FieldPicSerializer(data=request.data)
+
+        if serializer.is_valid():
+            instance = serializer.save(field=field)
 
             image_file = request.FILES.get('pic_path')
             if image_file:
-                img = Image.open(image_file)
-                lat, lon, pic_time = extract_exif_data(img)
-                instance.latitude = lat if lat else 0.0
-                instance.longitude = lon if lon else 0.0
-                instance.pic_time = make_aware(pic_time) if pic_time else datetime.now()
+                try:
+                    img = Image.open(image_file)
+                    lat, lon, pic_time = extract_exif_data(img)
+                    instance.latitude = lat if lat else None
+                    instance.longitude = lon if lon else None
+                    instance.pic_time = make_aware(pic_time) if pic_time else None
+                    
+                    save_dir = get_dynamic_path(field.owner.id, field.field_id)
+                    filename = image_file.name
+                    filepath = os.path.join(save_dir, filename)
 
-                save_dir = get_dynamic_path(field.owner.id, field.field_id)
-                filename = image_file.name
-                filepath = os.path.join(save_dir, filename)
+                    with open(filepath, 'wb+') as dest:
+                        for chunk in image_file.chunks():
+                            dest.write(chunk)
 
-                with open(filepath, 'wb+') as dest:
-                    for chunk in image_file.chunks():
-                        dest.write(chunk)
+                    relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
 
-                relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
+                    # 경로  구분자를 '/'로 통일
+                    normalized_path = relative_path.replace('\\', '/')
 
-                # 경로  구분자를 '/'로 통일
-                normalized_path = relative_path.replace('\\', '/')
+                    # DB에 저장
+                    instance.pic_path = normalized_path
+                    instance.save()
 
-                # DB에 저장
-                instance.pic_path = normalized_path
-                instance.save()
                 #redis연결되어야 사진 보내진다는 것
                 #enqueue_pic_path_task.delay(instance.field_pic_id)
+                except Exception as e:
+                    return Response({'error': f'Image processing failed: {str(e)}'}, status=500)
 
             return Response({
                 'status': 'success',
@@ -99,31 +131,18 @@ class UploadFieldPicAPIView(APIView):
                     'pic_path': instance.pic_path,
                     'longitude': instance.longitude,
                     'latitude': instance.latitude,
-                    'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'user': request.user.username
+                    'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S') if instance.pic_time else None,
+                    'field_id': field.field_id,
+                    'user_id': field.owner.id
+
                 }
             })
         else:
-            return Response({'status': 'error', 'errors': form.errors}, status=400)
+            return Response({'status': 'error', 'errors': serializer.errors}, status=400)
 
-class FlaskResultUpdateAPIView(APIView):
-    permission_classes = [AllowAny]
 
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            for item in data:
-                photo_id = item.get("photo_id")
-                pest = item.get("pest")
-                disease = item.get("disease")
 
-                FieldPic.objects.filter(field_pic_id=photo_id).update(
-                    has_pest=pest,
-                    has_disease=disease
-                )
-            return Response({"status": "updated"})
-        except Exception as e:
-            return Response({"error": str(e)}, status=400)
+
 class FieldSummaryAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -156,6 +175,7 @@ class FieldSummaryAPIView(APIView):
             })
 
         return Response(result)
+
 # class FieldSummaryAPIView(APIView):
 #     permission_classes = [AllowAny]
 
