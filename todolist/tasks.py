@@ -24,9 +24,9 @@ User = get_user_model()
 def run_generate_daily_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
-    region = extract_weather_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
+        region = extract_weather_region(field.field_address)
         for field in fields:
             pest_info = get_pest_summary(field)
             weather_info = get_weather(region, base_date)
@@ -48,11 +48,21 @@ def run_generate_monthly_keywords_and_tasks():
 def run_generate_biweekly_tasks():
     base_date = datetime.today().date()
     users = User.objects.all()
-    region = extract_weather_region(field.field_address)
     for user in users:
         fields = Field.objects.filter(owner=user)
+        region = extract_weather_region(field.field_address)
         for field in fields:
             keywords = get_month_keywords(field)
             pest_info = get_pest_summary(field)
             weather_info = get_weather_for_range(region, base_date, days=14)
             generate_biweekly_tasks(user, field, pest_info, weather_info, keywords, base_date)
+
+@shared_task
+def run_generate_monthly_tasks():
+    base_date = datetime.today().date()
+    users = User.objects.all()
+    for user in users:
+        fields = Field.objects.filter(owner=user)
+        for field in fields:
+            keywords = get_month_keywords(field) # 이미 DB에 저장된 키워드 사용
+            generate_monthly_tasks(user, field, keywords, base_date)
