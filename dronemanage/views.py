@@ -17,7 +17,6 @@ from .models import Drone
 
 class DroneRegisterView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
         # name 필드는 입력받지 않음
         data = request.data.copy()
@@ -64,7 +63,6 @@ class ClaimDroneAPIView(APIView):
             "name": drone.name,
             "owner_id": request.user.id
         }, status=200)
-
 class MyDroneListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
