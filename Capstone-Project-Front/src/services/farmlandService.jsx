@@ -53,27 +53,97 @@ const getAllFields = async () => {
  * @param {string} fieldData.field_name - 노지 이름
  * @param {string} fieldData.field_address - 노지 주소
  * @param {number} fieldData.field_area - 노지 면적(㎡)
- * @param {string} fieldData.crop_name - 재배 작물명
  * @param {string} fieldData.description - 설명
+ * @param {string} fieldData.field_url - 노지 URL (선택적)
  * @param {object} fieldData.geometry - GeoJSON 형식의 다각형 데이터
+ * @note crop_name은 자동으로 '배추'로 설정됩니다.
  * @returns {Promise<object>} 생성된 노지 정보 또는 오류 정보
  */
 const createField = async (fieldData) => {
   try {
+    console.log('createField 호출됨, 입력 데이터:', fieldData);
+    
     const headers = await getAuthHeaders();
-    console.log('fieldData:', fieldData);
-    const response = await api.post('/field/fields/', fieldData, { headers });
+    console.log('인증 헤더:', headers);
+    
+    // crop_name을 '배추'로 고정
+    const fieldDataWithCrop = {
+      ...fieldData,
+      crop_name: '배추'
+    };
+    
+    // 필수 필드 검증 (crop_name 제외)
+    const requiredFields = ['field_name', 'field_address', 'field_area', 'description', 'geometry'];
+    const missingFields = requiredFields.filter(field => !fieldDataWithCrop[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('필수 필드 누락:', missingFields);
+      return { 
+        success: false, 
+        error: `필수 필드가 누락되었습니다: ${missingFields.join(', ')}` 
+      };
+    }
+
+    // geometry 검증
+    if (!fieldDataWithCrop.geometry || fieldDataWithCrop.geometry.type !== 'Polygon' || !fieldDataWithCrop.geometry.coordinates) {
+      console.error('잘못된 geometry 형식:', fieldDataWithCrop.geometry);
+      return { 
+        success: false, 
+        error: 'geometry는 유효한 Polygon 형식이어야 합니다.' 
+      };
+    }
+
+    console.log('API 요청 전송 중:', fieldDataWithCrop);
+    
+    // API 요청
+    const response = await api.post('/field/fields/', fieldDataWithCrop, { headers });
+    
+    console.log('API 응답 성공:', response.data);
     return { success: true, data: response.data };
+    
   } catch (error) {
-    console.error('노지 생성 실패:', error.response || error);
-    return { success: false, error: error.response?.data?.detail || '요청 실패' };
+    console.error('노지 생성 실패 - 전체 에러:', error);
+    console.error('노지 생성 실패 - 응답 에러:', error.response);
+    
+    // 더 자세한 에러 정보 제공
+    let errorMessage = '요청 실패';
+    
+    if (error.response?.data) {
+      console.log('서버 에러 응답:', error.response.data);
+      
+      if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      } else if (error.response.data.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      } else {
+        // 필드별 에러 메시지 조합
+        const fieldErrors = [];
+        Object.keys(error.response.data).forEach(field => {
+          if (Array.isArray(error.response.data[field])) {
+            fieldErrors.push(`${field}: ${error.response.data[field].join(', ')}`);
+          } else {
+            fieldErrors.push(`${field}: ${error.response.data[field]}`);
+          }
+        });
+        if (fieldErrors.length > 0) {
+          errorMessage = fieldErrors.join('; ');
+        }
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    console.error('최종 에러 메시지:', errorMessage);
+    return { success: false, error: errorMessage };
   }
 };
 
 /**
  * 특정 노지 조회
  * @param {number} fieldId - 노지 ID
- * @returns {Promise<object>} 노지 정보 또는 오류 정보
+ * @returns {Promise<object>} 성공 여부 또는 오류 정보
  */
 const getFieldById = async (fieldId) => {
   try {
@@ -89,8 +159,8 @@ const getFieldById = async (fieldId) => {
 /**
  * 특정 노지 수정
  * @param {number} fieldId - 노지 ID
- * @param {object} fieldData - 수정할 노지 데이터 (부분 업데이트 가능)
- * @returns {Promise<object>} 수정된 노지 정보 또는 오류 정보
+ * @param {object} fieldData - 수정할 노지 데이터
+ * @returns {Promise<object>} 성공 여부 또는 오류 정보
  */
 const updateField = async (fieldId, fieldData) => {
   try {
@@ -128,7 +198,12 @@ const getGeometryByBBox = async (bbox) => {
   try {
     const headers = await getAuthHeaders();
     const response = await api.post('/field/get-geometry/', { bbox }, { headers });
-    return { success: true, data: response.data.geometry, field_area: response.data.field_area, field_address: response.data.field_address };
+    return { 
+      success: true, 
+      data: response.data.geometry, 
+      field_area: response.data.field_area, 
+      field_address: response.data.field_address 
+    };
   } catch (error) {
     console.error('Geometry 조회 실패:', error.response || error);
     return { success: false, error: error.response?.data?.detail || '요청 실패' };

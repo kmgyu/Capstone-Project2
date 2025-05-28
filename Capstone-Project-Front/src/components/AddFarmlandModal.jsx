@@ -11,7 +11,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import '../css/AddFarmlandModal.css';
 
-const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
+const AddFarmlandModal = ({ 
+    isOpen, 
+    onClose, 
+    onAddField, 
+    initialData = null, 
+    isEditMode = false 
+  }) => {
   // 맵 관련 상태 및 참조
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -282,6 +288,26 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
     setFieldArea(Math.round(calculatedArea));
   };
 
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      setFieldName(initialData.field_name || '');
+      setFieldAddress(initialData.field_address || '');
+      setFieldArea(initialData.field_area || 0);
+      setCropName(initialData.crop_name || '배추');
+      setDescription(initialData.description || '');
+      setGeometry(initialData.geometry || null);
+      
+      // 기존 geometry가 있으면 지도에 표시
+      if (initialData.geometry) {
+        setIsValidationPassed(true);
+        setValidationMessage('기존 필지 정보를 불러왔습니다.');
+      }
+    } else {
+      // 추가 모드일 때는 폼 초기화
+      resetForm();
+    }
+  }, [isEditMode, initialData, isOpen]);
+
   // 모달이 처음 열릴 때 스크립트 로드
   useEffect(() => {
     if (!isOpen) return;
@@ -529,6 +555,16 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
       searchPlaces();
     }
   };
+  // geometry가 설정되면 지도에 폴리곤을 그려줌
+  useEffect(() => {
+    console.log('감지되었음')
+    console.log(geometry)
+    if (!isOpen || !mapInitialized || !geometry) return;
+    if (geometry.coordinates) {
+      console.log('그립니다다')
+      drawGeometryPolygon(geometry.coordinates);
+    }
+  }, [geometry, isOpen, mapInitialized]);
 
   // 모달이 닫힌 상태면 아무것도 렌더링하지 않음
   if (!isOpen) return null;
@@ -537,7 +573,7 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
     <div className="modal-overlay">
       <div className="farmland-modal">
         <div className="modal-header">
-          <h2>새 노지 추가</h2>
+          <h2>{isEditMode ? '노지 수정' : '새 노지 추가'}</h2>
           <button className="close-button" onClick={onClose}>&times;</button>
         </div>
         
@@ -620,13 +656,9 @@ const AddFarmlandModal = ({ isOpen, onClose, onAddField }) => {
               >
                 필지 검증
               </button>
-              <button 
-                type="submit" 
-                className="save-button"
-                disabled={!isValidationPassed}
-              >
+              <button type="submit" className="save-button" disabled={!isValidationPassed}>
                 <FontAwesomeIcon icon={faSave} />
-                저장하기
+                {isEditMode ? '수정하기' : '저장하기'}
               </button>
             </div>
 

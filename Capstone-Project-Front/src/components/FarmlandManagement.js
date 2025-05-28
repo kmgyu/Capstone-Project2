@@ -14,7 +14,9 @@ const FarmlandManagement = () => {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingFarmland, setEditingFarmland] = useState(null);
+  
   // 노지 불러오기
   const fetchFarmlands = async () => {
     setLoading(true);
@@ -32,6 +34,36 @@ const FarmlandManagement = () => {
   useEffect(() => {
     fetchFarmlands();
   }, []);
+
+  // 편집 핸들러
+  const handleEditFarmland = async (farmland) => {
+    try {
+      // GET 요청으로 상세 정보 불러오기
+      const result = await farmlandService.getFieldById(farmland.field_id);
+      
+      if (result.success) {
+        setEditingFarmland(result.data); // 상세 데이터 설정
+        setShowEditModal(true);
+      } else {
+        alert('노지 정보 조회 실패: ' + result.error);
+      }
+    } catch (error) {
+      console.error('노지 정보 조회 중 오류:', error);
+      alert('노지 정보를 불러오는 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 노지 수정 저장
+  const handleUpdateFarmland = async (updatedFieldData) => {
+    const result = await farmlandService.updateField(editingFarmland.field_id, updatedFieldData);
+    if (result.success) {
+      setShowEditModal(false);
+      setEditingFarmland(null);
+      fetchFarmlands(); // 새로고침
+    } else {
+      alert('노지 수정 실패: ' + result.error);
+    }
+  };
 
   // 정렬/검색은 동일하게 (필드명만 맞춤)
   const sortFarmlands = (lands) => {
@@ -164,7 +196,7 @@ const FarmlandManagement = () => {
                 <p className="farmland-description">{farmland.description}</p>
                 <div className="farmland-actions">
                   {/* 편집 구현 필요시 수정 */}
-                  <button className="action-button edit" onClick={() => alert('편집 기능 구현 예정')}>
+                  <button className="action-button edit" onClick={() => handleEditFarmland(farmland)}>
                     <span>편집</span>
                   </button>
                   <button className="action-button delete" onClick={() => handleDeleteFarmland(farmland.field_id)}>
@@ -187,8 +219,20 @@ const FarmlandManagement = () => {
       <AddFarmlandModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAddFarmland={handleSaveFarmland}
+        onAddField={handleSaveFarmland}
       />
+
+      {/* 농지 편집 모달 */}
+        <AddFarmlandModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingFarmland(null);
+          }}
+          onAddField={handleUpdateFarmland}
+          initialData={editingFarmland}
+          isEditMode={true}
+        />
     </div>
   );
 };
