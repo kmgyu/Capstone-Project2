@@ -75,6 +75,11 @@ def get_dynamic_path(user_id, field_id):
 
 class UploadFieldPicAPIView(APIView):
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    authentication_classes = []  # ⬅️ 인증 완전히 비활성화
+
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
 =======
     authentication_classes = []  # ⬅️ 인증 완전히 비활성화
 
@@ -92,6 +97,7 @@ class UploadFieldPicAPIView(APIView):
             field = Field.objects.get(pk=field_id)
         except Field.DoesNotExist:
 <<<<<<< HEAD
+<<<<<<< HEAD
             return Response({'error': 'Invalid field_id'}, status=404)
 
         serializer = FieldPicSerializer(data=request.data)
@@ -100,12 +106,17 @@ class UploadFieldPicAPIView(APIView):
             instance = serializer.save(field=field)
 
 =======
+=======
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
             return Response({'error': 'Invalid field_id'}, status=400)
 
         serializer = FieldPicSerializer(data=request.data)
         if serializer.is_valid():
             instance = serializer.save(field=field)  
             
+<<<<<<< HEAD
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
+=======
 >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
             image_file = request.FILES.get('pic_path')
             if image_file:
@@ -139,6 +150,9 @@ class UploadFieldPicAPIView(APIView):
                 instance.pic_path = normalized_path
                 instance.save()
 
+<<<<<<< HEAD
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
+=======
 >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
                 #redis연결되어야 사진 보내진다는 것
                 #enqueue_pic_path_task.delay(instance.field_pic_id)
@@ -163,13 +177,19 @@ class UploadFieldPicAPIView(APIView):
                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'field_id': field_id,
                     'user_id': field.owner.id
+<<<<<<< HEAD
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
+=======
 >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
                 }
             })
         else:
             return Response({'status': 'error', 'errors': serializer.errors}, status=400)
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
 =======
 >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
 
