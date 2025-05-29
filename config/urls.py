@@ -31,7 +31,7 @@ urlpatterns = [
     path('photo/', include('photoapp.urls')),  
     path('weather/', include('weather.urls')),  
     path('drone/', include("dronemanage.urls")),
-
+    path('damage/', include("damagemanage.urls")),
 ]
 
 if settings.DEBUG:
