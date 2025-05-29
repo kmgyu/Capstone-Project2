@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from photoapp.models import FieldPic, PestResult, DiseaseResult
 # from fieldmanage.models import Field
 import os
+import base64
 
 class DamageManageView(APIView):
     permission_classes = [IsAuthenticated]
@@ -12,11 +13,13 @@ class DamageManageView(APIView):
     def get(self, request):
         # 필드 이름 및 설명, 멀티폴리곤
         image_file = None
-        pic_path = "Project2/repository/user_id_18/field_id_28/stupid.jpg"
+        pic_path = "/home/Capstone-Project2/repository/user_id_18/field_id_28/stupid.jpg"
         if os.path.exists(pic_path):
-            image_file = open(pic_path, 'rb').read()
+            with open(pic_path, "rb") as img:
+                image_file = base64.b64encode(img.read()).decode("utf-8")
+
         
-        return {
+        return Response({
             "results": [
                 { "field_id":28,
                 "field_name":'테스트 노지',
@@ -40,7 +43,7 @@ class DamageManageView(APIView):
                 "image_file": image_file,
                 }
             ]
-            }
+            })
 
 # class DamageManageView(APIView):
 #     permission_classes = [IsAuthenticated]
