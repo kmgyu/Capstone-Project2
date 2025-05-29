@@ -101,7 +101,6 @@ class UploadFieldPicAPIView(APIView):
             image_file = request.FILES.get('pic_path')
             
             if image_file:
-                print('fuuuuck')
                 try:
                     save_dir = get_dynamic_path(field.owner.id, field.field_id)
                     filename = image_file.name
@@ -128,7 +127,6 @@ class UploadFieldPicAPIView(APIView):
                     img = Image.open(filepath)
                     
                     lat, lon, pic_time = extract_exif_data(filepath)
-                    print('르금마')
                     # print(img)
                     instance.latitude = lat if lat else None
                     instance.longitude = lon if lon else None
