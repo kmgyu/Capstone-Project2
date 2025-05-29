@@ -17,10 +17,12 @@ from .models import Drone
 
 class DroneRegisterView(APIView):
     permission_classes = [IsAuthenticated]
-    
     def post(self, request):
+        # name 필드는 입력받지 않음
+        data = request.data.copy()
+        data.pop('name', None)  # name 필드 제거
 
-        serializer = DroneSerializer(data=request.data)
+        serializer = DroneSerializer(data=data)
         if serializer.is_valid():
             drone = serializer.save()
             return Response({
@@ -34,9 +36,12 @@ class ClaimDroneAPIView(APIView):
 
     def post(self, request):
         serial_number = request.data.get('serial_number')
+        name = request.data.get('name')
 
         if not serial_number:
             return Response({"detail": "serial_number는 필수입니다."}, status=400)
+        if not name:
+            return Response({"detail": "name은 필수입니다."}, status=400)
 
         try:
             drone = Drone.objects.get(serial_number=serial_number)
@@ -46,17 +51,18 @@ class ClaimDroneAPIView(APIView):
         if drone.owner is not None:
             return Response({"detail": "이미 소유자가 지정된 드론입니다."}, status=400)
 
-        # 현재 로그인된 사용자에게 소유권 할당
+        # 현재 로그인된 사용자에게 소유권 및 이름 할당
         drone.owner = request.user
+        drone.name = name
         drone.save()
 
         return Response({
             "message": "드론 소유권이 성공적으로 등록되었습니다.",
             "drone_id": drone.drone_id,
             "serial_number": drone.serial_number,
-            "owner_email": request.user.id
+            "name": drone.name,
+            "owner_id": request.user.id
         }, status=200)
-    
 class MyDroneListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

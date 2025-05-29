@@ -19,6 +19,7 @@ from .serializers import FieldPicSerializer
 from .models import FieldPic
 from fieldmanage.models import Field
 from .tasks import enqueue_pic_path_task
+import piexif
 
 def convert_to_degrees(value):
 
@@ -29,17 +30,24 @@ def convert_to_degrees(value):
     return d + (m / 60.0) + (s / 3600.0)
 
 
-def extract_exif_data(img):
+def extract_exif_data(img_path):
     try:
-        exif_data = img.getexif()
+        # img = Image.open(img_path)
+        exif_dict = piexif.load(img_path)
+        print(exif_dict)
+        
+        # exif_data = img.getexif()
         gps_data = {}
         pic_time = None
-
-        for tag, value in exif_data.items():
-            tag_name = TAGS.get(tag)
+        for tag, value in exif_dict.items():
+            tag_name = TAGS.get(tag, tag)
+            
             if tag_name == 'DateTimeOriginal':
-                pic_time = datetime.strptime(value, '%Y:%m:%d %H:%M:%S')
-            if tag_name == 'GPSInfo':
+                try:
+                    pic_time = datetime.strptime(value, '%Y:%m:%d %H:%M:%S')
+                except Exception as e:
+                    print(f"Time parse error: {e}")
+            if tag_name == 'GPSInfo' and isinstance(value, dict) or hasattr(value, 'items'):
                 for t in value:
                     sub_tag = GPSTAGS.get(t, t)
                     gps_data[sub_tag] = value[t]
@@ -56,7 +64,6 @@ def extract_exif_data(img):
             latitude = -latitude
         if longitude and lon_ref == 'W':
             longitude = -longitude
-
         return latitude, longitude, pic_time
 
 
@@ -87,34 +94,44 @@ class UploadFieldPicAPIView(APIView):
             return Response({'error': 'Invalid field_id'}, status=404)
 
         serializer = FieldPicSerializer(data=request.data)
-
+        
         if serializer.is_valid():
             instance = serializer.save(field=field)
 
             image_file = request.FILES.get('pic_path')
+            
             if image_file:
                 try:
-                    img = Image.open(image_file)
-                    lat, lon, pic_time = extract_exif_data(img)
-                    instance.latitude = lat if lat else None
-                    instance.longitude = lon if lon else None
-                    instance.pic_time = make_aware(pic_time) if pic_time else None
-                    
                     save_dir = get_dynamic_path(field.owner.id, field.field_id)
                     filename = image_file.name
                     filepath = os.path.join(save_dir, filename)
-
                     with open(filepath, 'wb+') as dest:
+                        print(filepath)
                         for chunk in image_file.chunks():
                             dest.write(chunk)
 
-                    relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
-
+                    # relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
+                    
                     # 경로  구분자를 '/'로 통일
-                    normalized_path = relative_path.replace('\\', '/')
+                    # normalized_path = relative_path.replace('\\', '/')
 
+                    
+                    # ✅ 사진 이름 추출 및 저장
+                    instance.pic_name = image_file.name  # <-- 파일명 저장
+                    
                     # DB에 저장
-                    instance.pic_path = normalized_path
+                    instance.pic_path = filepath
+                    # instance.save()
+                    # print(normalized_path)
+                    
+                    img = Image.open(filepath)
+                    
+                    lat, lon, pic_time = extract_exif_data(filepath)
+                    # print(img)
+                    instance.latitude = lat if lat else None
+                    instance.longitude = lon if lon else None
+                    instance.pic_time = make_aware(pic_time) if pic_time else None
+                    # 수정 후 다시저장
                     instance.save()
 
                 #redis연결되어야 사진 보내진다는 것
@@ -127,6 +144,7 @@ class UploadFieldPicAPIView(APIView):
                 'message': 'FieldPic uploaded successfully',
                 'data': {
                     'id': instance.field_pic_id,
+                    # 'pic_name': image_file.name,
                     'pic_name': instance.pic_name,
                     'pic_path': instance.pic_path,
                     'longitude': instance.longitude,

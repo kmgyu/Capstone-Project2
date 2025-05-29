@@ -5,6 +5,9 @@ class DroneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Drone
         fields = ['drone_id', 'name', 'serial_number', 'registered_at', 'owner_id']
+        extra_kwargs = {
+            'name': {'required': False, 'allow_blank': True, 'allow_null': True},
+        }
 
 
 class DroneLogSerializer(serializers.ModelSerializer):

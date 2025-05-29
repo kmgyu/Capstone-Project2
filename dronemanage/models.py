@@ -6,7 +6,7 @@ import hashlib
 
 class Drone(models.Model):
     drone_id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, null = True, blank=True)
     serial_number = models.CharField(max_length=12, unique=True, editable=False)
     registered_at = models.DateTimeField(auto_now_add=True)
 
