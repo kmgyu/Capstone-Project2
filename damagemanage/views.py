@@ -4,12 +4,18 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from photoapp.models import FieldPic, PestResult, DiseaseResult
 # from fieldmanage.models import Field
+import os
 
 class DamageManageView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         # 필드 이름 및 설명, 멀티폴리곤
+        image_file = None
+        pic_path = "Project2/repository/user_id_18/field_id_28/stupid.jpg"
+        if os.path.exists(pic_path):
+            image_file = open(pic_path, 'rb').read()
+        
         return {
             "results": [
                 { "field_id":28,
@@ -21,7 +27,7 @@ class DamageManageView(APIView):
                 "name": "벼멸구",
                 "field_pic_id": 123,
                 "detected_at": "2025-05-28T12:34:56Z",
-                "image_url": "https://orion.mokpo.ac.kr:8483/photo/summary/?user_id=18"
+                "image_file": image_file,
                 },
                 { "field_id":29,
                 "field_name":'테스트 노지',
@@ -31,7 +37,7 @@ class DamageManageView(APIView):
                 "name": "잎집무늬마름병",
                 "field_pic_id": 124,
                 "detected_at": "2025-05-28T12:38:10Z",
-                "image_url": "https://orion.mokpo.ac.kr:8483/photo/summary/?user_id=18"
+                "image_file": image_file,
                 }
             ]
             }
