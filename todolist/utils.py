@@ -44,7 +44,7 @@ def get_weather(region_name: str, target_date: datetime.date) -> str:
         return "날씨 정보 없음"
 
 
-def get_weather_for_range(region_name: str, start_date: datetime.date, days: int = 14) -> str:
+def get_weather_for_range(region_name: str, start_date: datetime.date, days: int = 8) -> str:
     end_date = start_date + timedelta(days=days - 1)
     weather_qs = Weather.objects.filter(region_name=region_name, date__range=(start_date, end_date)).order_by("date")
     if not weather_qs.exists():

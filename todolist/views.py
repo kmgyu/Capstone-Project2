@@ -15,7 +15,7 @@ from collections import Counter
 
 from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
-from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
+from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer, TodayFieldTodoSerializer
 
 
 from django.utils.timezone import make_aware, localtime
@@ -38,7 +38,7 @@ class FieldTodayInfoAPIView(APIView):
             if today in task_dates:
                 today_tasks.append(todo)
 
-        today_task_serialized = FieldTodoSerializer(today_tasks, many=True).data
+        today_task_serialized = TodayFieldTodoSerializer(today_tasks, many=True).data
 
         # 오늘 진행률 계산
         done_today = TaskProgress.objects.filter(
