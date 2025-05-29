@@ -6,6 +6,7 @@ from photoapp.models import FieldPic, PestResult, DiseaseResult
 # from fieldmanage.models import Field
 import os
 import base64
+import json
 
 class DamageManageView(APIView):
     permission_classes = [IsAuthenticated]
@@ -18,13 +19,15 @@ class DamageManageView(APIView):
             with open(pic_path, "rb") as img:
                 image_file = base64.b64encode(img.read()).decode("utf-8")
 
-        
+            # Polygon → MultiPolygon 변환
+            multipolygon_geojson =  {"type": "MultiPolygon", "coordinates": [[[[127.0358262, 37.50014259], [127.03586196, 37.5002088], [127.03679655, 37.50049568], [127.03692036, 37.50045131], [127.03740886, 37.49941096], [127.03738079, 37.49936177], [127.03666078, 37.49914719], [127.03624357, 37.49933391], [127.0358262, 37.50014259]]]]}
+            
         return Response({
             "results": [
                 { "field_id":28,
                 "field_name":'테스트 노지',
                 'description':'임시 테스트용 노지',
-                "geometry":{'28', '테스트 노지', '광주광역시 서구 치평동', '100', '상추', '2025-05-11', '{\"type\": \"Polygon\", \"coordinates\": [[[126.792, 35.145], [126.793, 35.145], [126.793, 35.146], [126.792, 35.146], [126.792, 35.145]]]}', '임시 테스트용 노지', '18'},
+                "geometry":json.dumps(multipolygon_geojson),
                 
                 "type": "pest",
                 "name": "벼멸구",
@@ -34,7 +37,7 @@ class DamageManageView(APIView):
                 },
                 { "field_id":29,
                 "field_name":'테스트 노지',
-                "geometry":{'28', '테스트 노지', '광주광역시 서구 치평동', '100', '상추', '2025-05-11', '{\"type\": \"Polygon\", \"coordinates\": [[[126.792, 35.145], [126.793, 35.145], [126.793, 35.146], [126.792, 35.146], [126.792, 35.145]]]}', '임시 테스트용 노지', '18'},
+                "geometry":json.dumps(multipolygon_geojson),
                 'description':'임시 테스트',
                 "type": "disease",
                 "name": "잎집무늬마름병",
