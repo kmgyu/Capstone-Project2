@@ -28,27 +28,30 @@ today = datetime.today().date()
 
 
 # -------- 공통 유틸 함수 -------- #
+# 중복 검사 (이름, 내용 둘 중에 하나라도 중복 시 제외외)
 def is_duplicate_by_cosine(name, content, existing_tasks, threshold=0.75):
+    if not existing_tasks:
+        return False  # 비교 대상 없으면 중복 아님
 
     name_texts = [t.task_name for t in existing_tasks]
     content_texts = [t.task_content or '' for t in existing_tasks]
 
-    # 이름 유사도
-    vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
-    name_vectors = vectorizer.fit_transform([name] + name_texts)
+    # 이름 유사도 검사
+    name_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
+    name_vectors = name_vectorizer.fit_transform([name] + name_texts)
     name_similarity = cosine_similarity(name_vectors[0:1], name_vectors[1:])
-
     if any(score >= threshold for score in name_similarity[0]):
-        return True  # 이름 유사도 기준 충족 시 중복
+        return True  # 이름 기준 충족 → 중복
 
-    # 내용 유사도
-    content_vectors = vectorizer.fit_transform([content] + content_texts)
+    # 내용 유사도 검사
+    content_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
+    content_vectors = content_vectorizer.fit_transform([content] + content_texts)
     content_similarity = cosine_similarity(content_vectors[0:1], content_vectors[1:])
-
     if any(score >= threshold for score in content_similarity[0]):
-        return True  # 내용 유사도 기준 충족 시 중복
+        return True  # 내용 기준 충족 → 중복
 
-    return False
+    return False  # 이름/내용 모두 기준 미달 → 중복 아님
+
 
 
 def save_task(user, field, task_data, start_date):
@@ -97,7 +100,7 @@ def save_task(user, field, task_data, start_date):
     if is_duplicate_by_cosine(task_data["task_name"], task_data.get("task_content", ""),overlap_tasks):
         print(f"[중복됨] {task_data['task_name']}")
         return
-    
+
     task = FieldTodo.objects.create(
         owner=user,
         field=field,
@@ -321,7 +324,6 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
 def generate_monthly_tasks(user, field, keywords, base_date):
     today = datetime.today().date()
     prompt = f"""
-오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 위치: {field.field_address}
 해당 월: {base_date.month}월
@@ -329,8 +331,8 @@ def generate_monthly_tasks(user, field, keywords, base_date):
 
 [역할]
 당신은 월간 농업 계획을 수립하는 전문가입니다.
-아래 정보를 바탕으로 {base_date.month}달 동안 수행해야 할 농작업들을 1일부터 말 일까지 하루 단위로 JSON 배열로 생성해주세요.(하루 최대 2~3개)
-다른 달은 무조건 포함하지말고 {base_date.month}의 1일부터 말 일까지만 생성해주세요.
+아래 정보를 바탕으로 {base_date.month}월 동안 수행해야 할 농작업들을 1일부터 말 일까지 하루 단위로 JSON 배열로 생성해주세요.(하루 최대 2~3개)
+다른 달은 무조건 포함하지말고 {base_date.month}월의 1일부터 말 일까지만 생성해주세요.
 
 [조건]
 - 모든 작업은 다음 필드를 포함해야 합니다:
@@ -348,7 +350,7 @@ def generate_monthly_tasks(user, field, keywords, base_date):
 - 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
 
 [판단 스텝]
-1. 월({today.month}) 기준 계절을 판별하고, 해당 작물({field.crop_name})의 일반적인 생육 단계를 추론합니다.
+1. 월({today.month}월) 기준 계절을 판별하고, 해당 작물({field.crop_name})의 일반적인 생육 단계를 추론합니다.
 2. 월별 작업 주기 및 관행에 따라 작업을 간격 있게 배치합니다.
 3. 주요 키워드({', '.join(keywords)})를 참고하여 핵심 작업을 빠짐없이 포함시킵니다.
 4. 작업 간 날짜가 겹치지 않도록 period를 고려해 배치합니다.
