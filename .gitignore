@@ -3,6 +3,7 @@
 
 ### Storages ###
 storage/
+repository/
 
 ### Django ###
 *.log
