@@ -154,9 +154,9 @@ def generate_month_keywords(field, base_date):
         print(f"[Keyword Parsing Error] {e}")
         return []
 
-# -------- 2. 2주치 할 일 생성 -------- #
+# -------- 2. 8일 치 할 일 생성 -------- #
 def generate_biweekly_tasks(user, field, weather, keywords, base_date):
-    last_week = base_date - timedelta(days=7)
+    last_week = base_date - timedelta(days=8)
 
     prev_tasks = FieldTodo.objects.filter(
         field=field,
@@ -173,7 +173,7 @@ def generate_biweekly_tasks(user, field, weather, keywords, base_date):
 기후 요약: {weather}
 지난 주 작업들: {summary}
 
-당신은 전문 농업 컨설턴트입니다. 아래 정보를 바탕으로 향후 14일 간의 농작업 계획을 JSON 배열로 작성해 주세요.
+당신은 전문 농업 컨설턴트입니다. 아래 정보를 바탕으로 향후 8일 간의 농작업 계획을 JSON 배열로 작성해 주세요.
 작업은 실제 농업 현장에서 수행되는 방식처럼 현실적이고 구체적으로 생성해야 합니다.
 
 [조건]
@@ -184,7 +184,7 @@ def generate_biweekly_tasks(user, field, weather, keywords, base_date):
   - 'priority' : 작업의 우선 순위
   - `period`: 해당 작업이 걸리는 일수 (정수, 1~5일)
   - `cycle`: 반복 주기 (항상 0)
-  - `start_date`: YYYY-MM-DD 형식의 시작일 (오늘부터 14일 이내)
+  - `start_date`: YYYY-MM-DD 형식의 시작일 (오늘부터 8일 이내)
 - 같은 작업명이 반복되어도 무방하나, 날짜(작업 기간)는 겹치지 않아야 함
 - 다른 작업명은 날짜가 겹쳐도 무관함
 - 하루에 작업이 반드시 존재할 필요는 없으며, 실질적으로 필요하거나 주기적으로 해야할 작업만 생성합니다.
