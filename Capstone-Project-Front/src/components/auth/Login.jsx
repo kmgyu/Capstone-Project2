@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // useEffect 추가!
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -11,10 +11,14 @@ import axios from 'axios';
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
+
+  // (1) rememberedEmail을 localStorage에서 불러와서 초기값에 반영
+  const rememberedEmail = localStorage.getItem('rememberedEmail') || '';
+
   const [formData, setFormData] = useState({
-    email: '',
+    email: rememberedEmail, // 기억된 이메일이 있으면 미리 채워줌
     password: '',
-    rememberMe: false
+    rememberMe: !!rememberedEmail // 이메일이 있으면 기본으로 체크
   });
 
   const [error, setError] = useState('');
@@ -23,13 +27,25 @@ const Login = ({ onLogin }) => {
   // API 기본 URL
   const API_BASE_URL = 'http://orion.mokpo.ac.kr:8483';
 
+  // (2) 컴포넌트가 마운트될 때 한번 더 localStorage 확인 (혹시 필요하다면)
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail') || '';
+    if (savedEmail) {
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        rememberMe: true
+      }));
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
-    
+
     // 입력 시 에러 메시지 초기화
     if (error) setError('');
   };
@@ -38,58 +54,49 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     // 간단한 유효성 검사
     if (!formData.email || !formData.password) {
       setError('이메일과 비밀번호를 모두 입력해주세요.');
       setLoading(false);
       return;
     }
-    
+
     try {
       // 로그인 API 호출
       const response = await axios.post(`${API_BASE_URL}/auth/auth/`, {
         email: formData.email,
         password: formData.password
       });
-      
+
       // 로그인 성공
       if (response.data && response.data.token) {
-        if (onLogin) {
-          console.log('로그인 성공:', response.data);
-          onLogin(response.data.token, response.data.user, formData.rememberMe);  
-
+        // (3) rememberMe 체크시 로컬스토리지에 이메일 저장, 아니면 삭제
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
         }
-        console.log('메인 이동동:', response.data);
-        // 메인 페이지로 이동
+
+        if (onLogin) {
+          onLogin(response.data.token, response.data.user, formData.rememberMe);
+        }
         navigate('/');
       } else {
-        // 응답이 예상과 다른 경우
         setError('로그인에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (error) {
       console.error('로그인 오류:', error);
-      
+
       // 오류 메시지 설정
       if (error.response) {
-        // 서버에서 응답을 받은 경우
         setError(error.response.data.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
       } else if (error.request) {
-        // 요청은 보냈지만 응답을 받지 못한 경우
         setError('서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
       } else {
-        // 요청 설정 중 오류 발생
         setError('요청 처리 중 오류가 발생했습니다.');
       }
 
-      // CORS 오류 처리 (개발 환경에서만 사용)
-      // if (process.env.NODE_ENV === 'development' && 
-      //     (error.message === 'Network Error' || (error.response && error.response.status === 0))) {
-      //   console.warn('CORS 오류 감지 - 개발 환경에서는 임시 처리됩니다');
-      //   const fakeToken = `dev_${Date.now()}`;
-      //   localStorage.setItem('token', fakeToken);
-      //   navigate('/');
-      // }
     } finally {
       setLoading(false);
     }
@@ -155,7 +162,7 @@ const Login = ({ onLogin }) => {
                   checked={formData.rememberMe}
                   onChange={handleChange}
                 />
-                <label htmlFor="rememberMe">로그인 상태 유지</label>
+                <label htmlFor="rememberMe">로그인 정보 기억</label>
               </div>
               <Link to="/forgot-password" className="forgot-password">비밀번호 찾기</Link>
             </div>

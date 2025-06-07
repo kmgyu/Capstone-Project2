@@ -97,14 +97,9 @@ const FarmlandManagement = () => {
   const displayFarmlands = sortFarmlands(filterFarmlands(farmlands));
 
   // 노지 추가
-  const handleSaveFarmland = async (newFieldData) => {
-    const result = await farmlandService.createField(newFieldData);
-    if (result.success) {
-      setShowAddModal(false);
-      fetchFarmlands(); // 새로고침(또는 setFarmlands(prev => [result.data, ...prev]))
-    } else {
-      alert('노지 추가 실패: ' + result.error);
-    }
+  const handleSaveFarmland = async () => {
+    setShowAddModal(false);
+    fetchFarmlands(); // 여기서는 createField 호출 X
   };
 
   // 삭제
@@ -190,10 +185,9 @@ const FarmlandManagement = () => {
       {loading && <div>불러오는 중...</div>}
       {error && <div className="error-message">{error}</div>}
 
-      {/* 노지 그리드 */}
       <div className="farmland-grid">
         {displayFarmlands.length > 0 ? (
-          displayFarmlands.map(farmland => (
+          displayFarmlands.map((farmland, idx) => (
             <div
               key={farmland.field_id}
               className="farmland-card"
@@ -202,7 +196,7 @@ const FarmlandManagement = () => {
             >
               <div className="farmland-image">
                 <img
-                  src={farmland.image_url ? farmland.image_url : process.env.PUBLIC_URL + '/logo192.png'}
+                  src={process.env.PUBLIC_URL + `/exam_${(idx % 3) + 1}.jpg`} // 1,2,3 반복
                   alt={farmland.field_name}
                 />
               </div>
@@ -243,6 +237,7 @@ const FarmlandManagement = () => {
           )
         )}
       </div>
+
 
       <AddFarmlandModal
         isOpen={showAddModal}

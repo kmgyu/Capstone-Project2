@@ -389,3 +389,307 @@
     padding: 15px;
   }
 }
+
+/* PestDiseaseMap.css */
+/* 
+.pest-disease-container {
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.pest-disease-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.pest-disease-header h2 {
+  color: #4d8b31;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.pest-disease-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.pest-disease-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.map-section, .reports-section {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  color: #333;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.kakao-map {
+  width: 100%;
+  height: 300px;
+  border-radius: 10px;
+  border: 1px solid #dcedc8;
+}
+
+.location-info {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.location-info p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.coordinates-info {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.report-card {
+  background: #fff;
+  border: 1px solid #e8f5e8;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.report-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.report-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-tag {
+  background: #4d8b31;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.report-name {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+
+
+.report-date {
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.map-nav-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.map-nav-button:hover {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.map-nav-button-left {
+  left: -25px;
+}
+
+.map-nav-button-right {
+  right: -25px;
+}
+
+.indicator-section {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: #ccc;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator-dot.active {
+  background: #4d8b31;
+  transform: scale(1.2);
+}
+
+.indicator-dot:hover {
+  background: #4d8b31;
+  opacity: 0.7;
+} */
+
+/* 이미지 모달 스타일 */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  z-index: 1001;
+}
+
+.image-modal-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-image {
+  width: 100%;
+  height: auto;
+  max-width: 800px;
+  max-height: 600px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.detail-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #4d8b31;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.detail-button:hover {
+  background: #3d6b26;
+}
+
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .pest-disease-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .map-section, .reports-section {
+    padding: 20px;
+  }
+  
+  .pest-disease-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .pest-disease-header p {
+    font-size: 1rem;
+  }
+  
+  .map-nav-button {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .map-nav-button-left {
+    left: -20px;
+  }
+  
+  .map-nav-button-right {
+    right: -20px;
+  }
+  
+  .image-modal-content {
+    margin: 20px;
+    max-width: calc(100% - 40px);
+    max-height: calc(100% - 40px);
+  }
+  
+  .modal-image {
+    max-height: 400px;
+  }
+}

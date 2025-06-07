@@ -117,7 +117,6 @@ function AppRoutes() {
   };
   // 로그아웃 처리 함수
   const handleLogout = () => {
-    localStorage.clear();
     sessionStorage.clear();
     setIsAuthenticated(false);
     setUserData(null);
@@ -173,8 +172,10 @@ function AppRoutes() {
   // 로그인 처리 함수
   const handleLogin = (token, user, rememberMe) => {
     const { access, refresh } = token;
-    if (rememberMe) {
-      // localStorage.setItem('user', JSON.stringify(user));
+    if (rememberMe && user.email) {
+      localStorage.setItem('rememberedEmail', user.email);
+    } else {
+      localStorage.removeItem('rememberedEmail');
     }
     sessionStorage.setItem('token', access);
     sessionStorage.setItem('refreshToken', refresh);
@@ -424,7 +425,6 @@ function AppRoutes() {
             <div className="farmland-management">
               {/* <h1 className="page-title">드론 상태 모니터링</h1> */}
               <DroneView />
-              <Slider />
             </div>
           </div>
         </main>

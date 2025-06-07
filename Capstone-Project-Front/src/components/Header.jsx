@@ -55,7 +55,9 @@ const Header = ({ onLogout, field }) => {
       if (!fieldId || !token) return false;           // 준비 안 됨
 
       try {
+        console.log('날씨 정보 요청:', fieldId);
         const data = await weatherService.getWeather(fieldId);
+        console.log('날씨 정보 응답:', data);
         if (unmounted) return true;
         setWeatherInfo({
           icon: weatherIconMap[data.weather] ?? faSun,

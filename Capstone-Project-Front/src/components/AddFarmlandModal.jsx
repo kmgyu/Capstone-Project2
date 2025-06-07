@@ -198,6 +198,7 @@ const AddFarmlandModal = ({
       };
 
       map.current = new window.kakao.maps.Map(mapContainer.current, options);
+      map.current.setMapTypeId(window.kakao.maps.MapTypeId.HYBRID);
       
       // 장소 검색 객체 생성
       ps.current = new window.kakao.maps.services.Places();
@@ -506,17 +507,17 @@ const AddFarmlandModal = ({
   // 노지 추가 폼 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!fieldName.trim()) {
       alert('노지 이름을 입력해주세요.');
       return;
     }
-    
+
     if (!isValidationPassed || !geometry) {
       alert('노지 검증을 먼저 완료해주세요.');
       return;
     }
-    
+
     // 노지 데이터 생성
     const fieldData = {
       field_name: fieldName,
@@ -526,25 +527,26 @@ const AddFarmlandModal = ({
       description: description,
       geometry: geometry
     };
-    
+
     try {
-      // 노지 생성 API 호출
-      const result = await farmlandService.createField(fieldData);
-      
+      let result;
+      if (isEditMode && initialData && initialData.field_id) {
+        // 수정 모드: update API 호출
+        result = await farmlandService.updateField(initialData.field_id, fieldData);
+      } else {
+        // 추가 모드: create API 호출
+        result = await farmlandService.createField(fieldData);
+      }
+
       if (result.success) {
-        alert('노지가 성공적으로 등록되었습니다.');
-        
-        // 부모 컴포넌트에 데이터 전달
-        onAddField(result.data);
-        
-        // 모달 닫기
+        alert(isEditMode ? '노지 정보가 성공적으로 수정되었습니다.' : '노지가 성공적으로 등록되었습니다.');
+        onAddField(result.data); // 등록/수정 후 콜백 (부모에서 목록 새로고침)
         onClose();
       } else {
-        alert(`노지 등록에 실패했습니다: ${result.error}`);
+        alert(`${isEditMode ? '노지 수정' : '노지 등록'}에 실패했습니다: ${result.error}`);
       }
     } catch (error) {
-      console.error('노지 등록 중 오류 발생:', error);
-      alert('노지 등록 중 오류가 발생했습니다.');
+      alert(`${isEditMode ? '노지 수정' : '노지 등록'} 중 오류가 발생했습니다.`);
     }
   };
 
