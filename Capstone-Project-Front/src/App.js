@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import Dashboard from './components/Dashboard';
@@ -22,6 +23,7 @@ import './css/AuthStyles.css';
 import authService from './services/authService';
 import fieldService from './services/fieldService'; // 필드 API 서비스
 import PestDiseaseMap from './components/PestDiseaseMap';
+import farmlandService from './services/farmlandService';
 // Router hooks를 사용하는 별도의 컴포넌트
 function AppRoutes() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -420,7 +422,7 @@ function AppRoutes() {
         <main className="main-content">
           <div className="container">
             <div className="farmland-management">
-              <h1 className="page-title">드론 상태 모니터링</h1>
+              {/* <h1 className="page-title">드론 상태 모니터링</h1> */}
               <DroneView />
               <Slider />
             </div>
@@ -430,6 +432,42 @@ function AppRoutes() {
       <Footer />
     </>
   );
+  function FarmlandDetailPage() {
+    const { field_id } = useParams();
+    const [field, setField] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      async function fetchField() {
+        setLoading(true);
+        const result = await farmlandService.getFieldById(field_id);
+        if (result.success) setField(result.data);
+        setLoading(false);
+      }
+      fetchField();
+    }, [field_id]);
+
+    if (loading) return <div style={{ textAlign: 'center' }}>로딩 중...</div>;
+    if (!field) return <div style={{ textAlign: 'center' }}>노지 정보를 찾을 수 없습니다.</div>;
+
+    // 기존 홈페이지 구조와 동일, field만 prop으로 내려줌
+    return (
+      <>
+        <Header onLogout={handleLogout} field={field} />
+        <div className={`app-container ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+          <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+          <main className="main-content">
+            <div className="container">
+              <HeroSection field={field} />
+              <Dashboard field={field} />
+              <PestDiseaseMap field={field} />
+            </div>
+          </main>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <Routes>
@@ -473,6 +511,12 @@ function AppRoutes() {
             <ResetPassword />
           )
         }
+      />
+      <Route
+        path="/farmland/:field_id"
+        element={
+          isAuthenticated ? 
+          <FarmlandDetailPage /> : <Navigate to="/login" replace /> }
       />
 
       {/* 보호된 라우트 */}

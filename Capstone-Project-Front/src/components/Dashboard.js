@@ -7,7 +7,7 @@ import '../css/Dashboard.css';
 import moment from 'moment';
 import 'moment/locale/ko';
 
-const Dashboard = () => {
+const Dashboard = ({ field }) => {
   // 상태 관리
   const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
   const [schedules, setSchedules] = useState([]);
@@ -25,14 +25,21 @@ const Dashboard = () => {
   const user = userString ? JSON.parse(userString) : null;
   const userId = user?.id;
   
-  // 데이터 로드 함수
+  // 데이터 로드 함수 (field prop에 따라 분기)
   const loadSchedules = useCallback(async (start, end) => {
     console.log('일정 데이터 로드:', start, end);
     setLoading(true);
     setError(null);
 
     try {
-      const userTodos = await todoService.getAllTodos(start, end);
+      let userTodos;
+      if (field && field.field_id) {
+        // field prop이 있으면 해당 필드 일정만
+        userTodos = await todoService.getTodos(field.field_id, start, end);
+      } else {
+        // 없으면 전체 일정
+        userTodos = await todoService.getAllTodos(start, end);
+      }
       console.log('원본 데이터', userTodos);
       const formattedTodos = todoService.formatTodosForCalendar(userTodos);
       console.log('형식 변환된 일정:', formattedTodos);
@@ -46,7 +53,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, field]);
   
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -113,55 +120,44 @@ const Dashboard = () => {
   const addSchedule = useCallback(async (newScheduleData) => {
     try {
       setLoading(true);
-      
       // 필드 ID는 예시로 첫 번째 필드 사용 (실제로는 선택된 필드 ID 사용)
       // 백엔드 문서에 있는 필드 ID 사용
-      const fieldId = newScheduleData.field_id;
+      const fieldId = field && field.field_id ? field.field_id : newScheduleData.field_id;
       const backendTodoData = {
         task_name: newScheduleData.task_name,
         task_content: newScheduleData.task_content || newScheduleData.task_name,
         start_date: newScheduleData.start_date,
         period: parseInt(newScheduleData.period) || 1,
       };
-      
       // 새 Todo 생성 API 호출
       const newTodo = await todoService.createTodo(fieldId, backendTodoData);
-      
       // 캘린더용으로 형식 변환
       const formattedNewTodo = todoService.formatTodosForCalendar([newTodo])[0];
-      
       // 상태 업데이트
       setSchedules(prevSchedules => [...prevSchedules, formattedNewTodo]);
-      
       // 필터링된 목록도 업데이트
       filterSchedulesByDate([...schedules, formattedNewTodo], selectedDate);
-      
       // 모달 닫기
       setIsTodoModalOpen(false);
-      
     } catch (error) {
       console.error('일정 추가 오류:', error);
       alert('일정을 추가하는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
-  }, [schedules, selectedDate]);
+  }, [schedules, selectedDate, field]);
   
   // 일정 삭제 핸들러
   const deleteSchedule = useCallback(async (id) => {
     try {
       setLoading(true);
-      
       // API 호출로 삭제
       await todoService.deleteTodo(id);
-      
       // 상태 업데이트
       const updatedSchedules = schedules.filter(schedule => schedule.id !== id);
       setSchedules(updatedSchedules);
-      
       // 필터링된 목록도 업데이트
       filterSchedulesByDate(updatedSchedules, selectedDate);
-      
     } catch (error) {
       console.error('일정 삭제 오류:', error);
       alert('일정을 삭제하는 중 오류가 발생했습니다.');

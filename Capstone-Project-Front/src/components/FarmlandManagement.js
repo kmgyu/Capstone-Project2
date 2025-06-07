@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faPlus, faSeedling, faSort } from '@fortawesome/free-solid-svg-icons';
+import { useNavigate } from 'react-router-dom';
 import '../css/FarmlandManagement.css';
 import AddFarmlandModal from './AddFarmlandModal';
 import farmlandService from '../services/farmlandService';
@@ -16,7 +17,9 @@ const FarmlandManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFarmland, setEditingFarmland] = useState(null);
-  
+
+  const navigate = useNavigate();
+
   // 노지 불러오기
   const fetchFarmlands = async () => {
     setLoading(true);
@@ -40,7 +43,7 @@ const FarmlandManagement = () => {
     try {
       // GET 요청으로 상세 정보 불러오기
       const result = await farmlandService.getFieldById(farmland.field_id);
-      
+
       if (result.success) {
         setEditingFarmland(result.data); // 상세 데이터 설정
         setShowEditModal(true);
@@ -115,6 +118,17 @@ const FarmlandManagement = () => {
     }
   };
 
+  // 카드 클릭시 상세 페이지 이동 (버튼 클릭은 제외)
+  const handleCardClick = (e, field_id) => {
+    // 버튼을 누른 경우(편집/삭제)에는 이동 방지
+    if (
+      e.target.closest('.action-button') // 버튼 내부 클릭시
+    ) {
+      return;
+    }
+    navigate(`/farmland/${field_id}`);
+  };
+
   return (
     <div className="farmland-management">
       <div className="farmland-header">
@@ -183,7 +197,8 @@ const FarmlandManagement = () => {
             <div
               key={farmland.field_id}
               className="farmland-card"
-              // 상세 페이지 이동 등 구현 필요시 여기에 추가
+              onClick={e => handleCardClick(e, farmland.field_id)}
+              style={{ cursor: 'pointer' }}
             >
               <div className="farmland-image">
                 <img
@@ -195,11 +210,24 @@ const FarmlandManagement = () => {
                 <h3 className="farmland-title">{farmland.field_name}</h3>
                 <p className="farmland-description">{farmland.description}</p>
                 <div className="farmland-actions">
-                  {/* 편집 구현 필요시 수정 */}
-                  <button className="action-button edit" onClick={() => handleEditFarmland(farmland)}>
+                  {/* 편집 */}
+                  <button
+                    className="action-button edit"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleEditFarmland(farmland);
+                    }}
+                  >
                     <span>편집</span>
                   </button>
-                  <button className="action-button delete" onClick={() => handleDeleteFarmland(farmland.field_id)}>
+                  {/* 삭제 */}
+                  <button
+                    className="action-button delete"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleDeleteFarmland(farmland.field_id);
+                    }}
+                  >
                     <span>삭제</span>
                   </button>
                 </div>
@@ -223,16 +251,16 @@ const FarmlandManagement = () => {
       />
 
       {/* 농지 편집 모달 */}
-        <AddFarmlandModal
-          isOpen={showEditModal}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingFarmland(null);
-          }}
-          onAddField={handleUpdateFarmland}
-          initialData={editingFarmland}
-          isEditMode={true}
-        />
+      <AddFarmlandModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingFarmland(null);
+        }}
+        onAddField={handleUpdateFarmland}
+        initialData={editingFarmland}
+        isEditMode={true}
+      />
     </div>
   );
 };

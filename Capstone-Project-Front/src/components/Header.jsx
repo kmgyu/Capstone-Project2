@@ -26,7 +26,7 @@ const weatherIconMap = {
   '눈':              faSnowflake
 };
 
-const Header = ({ onLogout }) => {
+const Header = ({ onLogout, field }) => {
   const navigate = useNavigate();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -50,12 +50,12 @@ const Header = ({ onLogout }) => {
     let unmounted = false;
 
     const fetchWeather = async () => {
-      const fieldId = sessionStorage.getItem('main_field');
+      const fieldId = field?.field_id || sessionStorage.getItem('main_field');
       const token   = authService.getAccessToken();
       if (!fieldId || !token) return false;           // 준비 안 됨
 
       try {
-        const data = await weatherService.getWeather();
+        const data = await weatherService.getWeather(fieldId);
         if (unmounted) return true;
         setWeatherInfo({
           icon: weatherIconMap[data.weather] ?? faSun,
@@ -82,7 +82,7 @@ const Header = ({ onLogout }) => {
       clearInterval(retryId);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [field]);
 
   const toggleMobileMenu = () => {
     setShowMobileMenu(!showMobileMenu);
