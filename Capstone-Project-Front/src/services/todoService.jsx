@@ -84,6 +84,7 @@ const todoService = {
   createTodo: async (fieldId, todoData) => {
     try {
       const headers = await getAuthHeaders();
+      console.log('할 일 생성 요청 데이터:', todoData);  // ✅ 추가
       const response = await api.post(`/todo/todos/${fieldId}/list/`, todoData, { headers });
       return response.data;
     } catch (error) {

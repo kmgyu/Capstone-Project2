@@ -77,7 +77,7 @@ const Header = ({ onLogout, field }) => {
         clearInterval(retryId);
         intervalId = setInterval(fetchWeather, 30 * 60 * 1000); // 30 min
       }
-    }, 5000);
+    }, 500);
 
     return () => {
       unmounted = true;

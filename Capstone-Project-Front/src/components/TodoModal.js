@@ -5,7 +5,7 @@ import moment from 'moment';
 import 'moment/locale/ko';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarDay, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import AddTodoModal from './AddTodoModal'; // 새로운 모달 컴포넌트 추가
+import AddTodoModal from './AddTodoModal';
 import '../css/TodoModal.css';
 
 const TodoModal = ({ 
@@ -16,7 +16,7 @@ const TodoModal = ({
   onAddTodo,
   onDeleteTodo,
   onToggleComplete
-}) => {
+}) => {  
   // 안전한 todos 처리
   const safeRenderTodos = Array.isArray(todos) ? todos : [];
   
@@ -51,6 +51,13 @@ const TodoModal = ({
     }
   };
   
+  // 체크박스 클릭 핸들러 (디버깅용)
+  const handleCheckboxChange = (todoId, todoDate) => {
+    if (typeof onToggleComplete === 'function') {
+      onToggleComplete(todoId, todoDate);
+    } 
+  };
+  
   return (
     <>
       <Modal
@@ -83,7 +90,6 @@ const TodoModal = ({
             <ul className="todo-list">
               {safeRenderTodos.map(todo => {
                 const isChecked = todo.progresses?.some(p => p.date === date && p.status === 'done');
-
                 return (
                   <li 
                     key={todo.id || Math.random()} 
@@ -91,14 +97,38 @@ const TodoModal = ({
                     style={{ borderLeft: `4px solid ${todo.color || '#4CAF50'}` }}
                   >
                     <div className="todo-checkbox-wrapper">
-                      <input 
-                        type="checkbox" 
-                        id={`todo-checkbox-${todo.id}`}
-                        className="todo-checkbox" 
-                        checked={isChecked}
-                        onChange={() => typeof onToggleComplete === 'function' ? onToggleComplete(todo.id, date) : null}
-                      />
-                      <label htmlFor={`todo-checkbox-${todo.id}`} className="todo-checkbox-label"></label>
+                      {/* 디버깅: 체크박스 클릭 테스트 */}
+                      <div 
+                        onClick={() => {
+                          handleCheckboxChange(todo.id, date);
+                        }}
+                        style={{ 
+                          cursor: 'pointer', 
+                          padding: '5px',
+                          border: '1px solid red' // 임시로 영역 확인용
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          id={`todo-checkbox-${todo.id}`}
+                          className="todo-checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            handleCheckboxChange(todo.id, date);
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        />
+                        <label 
+                          htmlFor={`todo-checkbox-${todo.id}`} 
+                          className="todo-checkbox-label"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleCheckboxChange(todo.id, date);
+                          }}
+                        ></label>
+                      </div>
                     </div>
                     
                     <div className="todo-content">
