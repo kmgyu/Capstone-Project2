@@ -77,7 +77,7 @@ class UpdateDroneAPIView(APIView):
 
     def put(self, request, drone_id):
         try:
-            drone = Drone.objects.get(id=drone_id, owner=request.user)
+            drone = Drone.objects.get(drone_id=drone_id, owner=request.user)
         except Drone.DoesNotExist:
             return Response({"detail": "수정할 권한이 없거나 드론이 존재하지 않습니다."}, status=404)
 
@@ -93,7 +93,7 @@ class DeleteDroneAPIView(APIView):
 
     def delete(self, request, drone_id):
         try:
-            drone = Drone.objects.get(id=drone_id, owner=request.user)
+            drone = Drone.objects.get(drone_id=drone_id, owner=request.user)
         except Drone.DoesNotExist:
             return Response({"detail": "삭제할 권한이 없거나 드론이 존재하지 않습니다."}, status=404)
 
@@ -204,18 +204,40 @@ class DailyFlightTimeView(APIView):
         if not drone_id:
             return Response({"error": "drone_id는 필수입니다."}, status=400)
 
-        logs = (
-            DroneLog.objects.filter(drone_id=drone_id)
-            .annotate(date=TruncDate('timestamp'))
-            .values('date')
-            .annotate(total_minutes=Sum('flight_time'))
-            .order_by('date')
-        )
+        logs = DroneLog.objects.filter(drone_id=drone_id).order_by('flight_time')
+        if not logs.exists():
+            return Response([])
 
-        return Response([
-            {"date": log["date"], "flight_time_min": log["total_minutes"]}
-            for log in logs
-        ])
+        now = timezone.now().date()
+        from_date = now - timedelta(days=6)
+        to_date = now
+
+        daily_times = {}  # {date: 누적 분}
+
+        logs = list(logs)
+        for i in range(1, len(logs)):
+            prev = logs[i-1]
+            curr = logs[i]
+            prev_date = prev.flight_time.date()
+            curr_date = curr.flight_time.date()
+            if prev_date != curr_date:
+                continue
+            # 최근 7일 이내 날짜만 누적
+            if from_date <= curr_date <= to_date:
+                duration_min = (curr.flight_time - prev.flight_time).total_seconds() / 60.0
+                if 0 < duration_min < 30:
+                    daily_times.setdefault(str(curr_date), 0)
+                    daily_times[str(curr_date)] += duration_min
+
+        # 7일 모두 포함 (없는 날짜는 0)
+        result = []
+        for i in range(7):
+            day = from_date + timedelta(days=i)
+            result.append({
+                "date": str(day),
+                "flight_time_min": round(daily_times.get(str(day), 0), 2)
+            })
+        return Response(result)
 
 
 class DroneErrorLogView(APIView):
