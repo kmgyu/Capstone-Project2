@@ -42,7 +42,7 @@ class RealtimeShortTermWeatherAPIView(APIView):
 
         if not weather_queryset or not weather_queryset.exists():
             return Response({"error": "날씨 정보를 가져올 수 없습니다."}, status=500)
-        now_hour = now.hour
+        # now_hour = now.hour
         
         now_hour = datetime.datetime.now().hour
         weather_now = weather_queryset.filter(hour=now_hour).first() or weather_queryset.order_by("-hour").first()

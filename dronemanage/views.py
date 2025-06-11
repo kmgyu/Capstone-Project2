@@ -77,7 +77,7 @@ class UpdateDroneAPIView(APIView):
 
     def put(self, request, drone_id):
         try:
-            drone = Drone.objects.get(id=drone_id, owner=request.user)
+            drone = Drone.objects.get(drone_id=drone_id, owner=request.user)
         except Drone.DoesNotExist:
             return Response({"detail": "수정할 권한이 없거나 드론이 존재하지 않습니다."}, status=404)
 
@@ -93,7 +93,7 @@ class DeleteDroneAPIView(APIView):
 
     def delete(self, request, drone_id):
         try:
-            drone = Drone.objects.get(id=drone_id, owner=request.user)
+            drone = Drone.objects.get(drone_id=drone_id, owner=request.user)
         except Drone.DoesNotExist:
             return Response({"detail": "삭제할 권한이 없거나 드론이 존재하지 않습니다."}, status=404)
 
