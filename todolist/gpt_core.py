@@ -118,6 +118,7 @@ def save_task(user, field, task_data, start_date):
 # -------- 1. 월간 키워드 생성 및 저장 -------- #
 def generate_month_keywords(field, base_date):
     prompt = f"""
+오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 월: {base_date.month}월
 지역: {field.field_address}
@@ -165,6 +166,7 @@ def generate_biweekly_tasks(user, field, weather, keywords, base_date):
     task_names = [t.task_name for t in prev_tasks]
     summary = ", ".join(task_names) if task_names else "없음"
     prompt = f"""
+오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 날짜: {base_date.strftime("%Y-%m-%d")}
 작물: {field.crop_name}
 위치: {field.field_address}
@@ -324,6 +326,7 @@ def generate_daily_tasks_for_field(user, field, pest_info, weather_info, base_da
 def generate_monthly_tasks(user, field, keywords, base_date):
     today = datetime.today().date()
     prompt = f"""
+오늘은 {base_date.strftime("%Y-%m-%d")}입니다.
 작물: {field.crop_name}
 위치: {field.field_address}
 해당 월: {base_date.month}월
@@ -345,6 +348,7 @@ def generate_monthly_tasks(user, field, keywords, base_date):
 - 하루에 작업이 반드시 존재할 필요는 없으며, 실질적으로 필요하거나 주기적으로 해야할 작업만 생성합니다.
 - 중요도 및 계절성을 반영하여 작업을 간격 있게 배치하되 하루에 최대 2~3개의의 일을 할 수 있습니다.
 - 하루에 같은 작업을 생성하지 않도록 하고 (start_date + period) 기간을 고려하여 겹치지 않도록 생성합니다.
+- period는 필요에 따라 길게 계획해도 됩니다. 
 - 우선순위 1: 병해충 관련 작업 및 날씨 관련 대응 (예: 방제, 살충제, 병해충, 진딧물 등)
 - 우선순위 2: 생장 및 환경관리 작업 (예: 통풍, 차광, 정지작업 등)
 - 우선순위 3: 일반/루틴 작업 (예: 비료, 관수, 수확 등)
@@ -354,7 +358,8 @@ def generate_monthly_tasks(user, field, keywords, base_date):
 2. 월별 작업 주기 및 관행에 따라 작업을 간격 있게 배치합니다.
 3. 주요 키워드({', '.join(keywords)})를 참고하여 핵심 작업을 빠짐없이 포함시킵니다.
 4. 작업 간 날짜가 겹치지 않도록 period를 고려해 배치합니다.
-3. 생육 단계와 월에 따라 일반적으로 수행되는 주요 작업을 도출합니다.
+5. 생육 단계와 월에 따라 일반적으로 수행되는 주요 작업을 도출합니다.
+
 
 [출력 예시 형식]
 [
@@ -362,7 +367,7 @@ def generate_monthly_tasks(user, field, keywords, base_date):
     "task_name": "잡초 제거",
     "task_content": "감자 주변의 잡초를 제거하여 생육을 돕습니다.",
     "priority" : 2
-    "period": 1,
+    "period": 3,
     "cycle": 0,
     "start_date": "2025-05-18"
   }},
