@@ -82,130 +82,67 @@ def get_dynamic_path(user_id, field_id):
 
 class UploadFieldPicAPIView(APIView):
     authentication_classes = []  # ⬅️ 인증 완전히 비활성화
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
 
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-# =======
-#     authentication_classes = []  # ⬅️ 인증 완전히 비활성화
+    def post(self, request):
+        field_id = request.data.get('field_id')
 
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-#     permission_classes = [AllowAny]
-#     parser_classes = [MultiPartParser, FormParser]
+        if not field_id:
+            return Response({'error': 'field_id is required'}, status=400)
 
-#     def post(self, request):
-#         field_id = request.data.get('field_id')
+        try:
+            field = Field.objects.get(pk=field_id)
+        except Field.DoesNotExist:
+            return Response({'error': 'Invalid field_id'}, status=404)
 
-#         if not field_id:
-#             return Response({'error': 'field_id is required'}, status=400)
-
-#         try:
-#             field = Field.objects.get(pk=field_id)
-#         except Field.DoesNotExist:
-# <<<<<<< HEAD
-# <<<<<<< HEAD
-#             return Response({'error': 'Invalid field_id'}, status=404)
-
-#         serializer = FieldPicSerializer(data=request.data)
-        
-#         if serializer.is_valid():
-#             instance = serializer.save(field=field)
-
-# =======
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-#             return Response({'error': 'Invalid field_id'}, status=400)
-
-#         serializer = FieldPicSerializer(data=request.data)
-#         if serializer.is_valid():
-#             instance = serializer.save(field=field)  
+        serializer = FieldPicSerializer(data=request.data)
+        if serializer.is_valid():
+            instance = serializer.save(field=field)
+            image_file = request.FILES.get('pic_path')
             
-# <<<<<<< HEAD
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-#             image_file = request.FILES.get('pic_path')
-            
-#             if image_file:
-#                 try:
-#                     save_dir = get_dynamic_path(field.owner.id, field.field_id)
-#                     filename = image_file.name
-#                     filepath = os.path.join(save_dir, filename)
-#                     with open(filepath, 'wb+') as dest:
-#                         print(filepath)
-#                         for chunk in image_file.chunks():
-#                             dest.write(chunk)
+            if image_file:
+                try:
+                    save_dir = get_dynamic_path(field.owner.id, field.field_id)
+                    filename = image_file.name
+                    filepath = os.path.join(save_dir, filename)
+                    with open(filepath, 'wb+') as dest:
+                        print(filepath)
+                        for chunk in image_file.chunks():
+                            dest.write(chunk)
 
-#                     # relative_path = os.path.relpath(filepath, settings.MEDIA_ROOT)
-                    
-#                     # 경로  구분자를 '/'로 통일
-#                     # normalized_path = relative_path.replace('\\', '/')
+                    # ✅ 사진 이름 및 경로 저장
+                    instance.pic_name = image_file.name
+                    instance.pic_path = filepath
 
-                    
-#                     # ✅ 사진 이름 추출 및 저장
-#                     instance.pic_name = image_file.name  # <-- 파일명 저장
-                    
-#                     # DB에 저장
-#                     instance.pic_path = filepath
-#                     # instance.save()
-#                     # print(normalized_path)
-                    
-#                     img = Image.open(filepath)
-                    
-#                     lat, lon, pic_time = extract_exif_data(filepath)
-#                     # print(img)
-#                     instance.latitude = lat if lat else None
-#                     instance.longitude = lon if lon else None
-#                     instance.pic_time = make_aware(pic_time) if pic_time else None
-#                     # 수정 후 다시저장
-#                     instance.save()
+                    # EXIF 데이터 추출 및 저장
+                    img = Image.open(filepath)
+                    lat, lon, pic_time = extract_exif_data(filepath)
+                    instance.latitude = lat if lat else None
+                    instance.longitude = lon if lon else None
+                    instance.pic_time = make_aware(pic_time) if pic_time else None
+                    instance.save()
 
-# <<<<<<< HEAD
-# =======
-#                 # DB에 저장
-#                 instance.pic_path = normalized_path
-#                 instance.save()
+                except Exception as e:
+                    return Response({'error': f'Image processing failed: {str(e)}'}, status=500)
 
-# <<<<<<< HEAD
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-#                 #redis연결되어야 사진 보내진다는 것
-#                 #enqueue_pic_path_task.delay(instance.field_pic_id)
-#                 except Exception as e:
-#                     return Response({'error': f'Image processing failed: {str(e)}'}, status=500)
+            return Response({
+                'status': 'success',
+                'message': 'FieldPic uploaded successfully',
+                'data': {
+                    'id': instance.field_pic_id,
+                    'pic_name': instance.pic_name,
+                    'pic_path': instance.pic_path,
+                    'longitude': instance.longitude,
+                    'latitude': instance.latitude,
+                    'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S') if instance.pic_time else None,
+                    'field_id': field.field_id,
+                    'user_id': field.owner.id
+                }
+            })
+        else:
+            return Response({'status': 'error', 'errors': serializer.errors}, status=400)
 
-#             return Response({
-#                 'status': 'success',
-#                 'message': 'FieldPic uploaded successfully',
-#                 'data': {
-#                     'id': instance.field_pic_id,
-#                     # 'pic_name': image_file.name,
-#                     'pic_name': instance.pic_name,
-#                     'pic_path': instance.pic_path,
-#                     'longitude': instance.longitude,
-#                     'latitude': instance.latitude,
-#                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S') if instance.pic_time else None,
-#                     'field_id': field.field_id,
-#                     'user_id': field.owner.id
-
-# =======
-#                     'pic_time': instance.pic_time.strftime('%Y-%m-%d %H:%M:%S'),
-#                     'field_id': field_id,
-#                     'user_id': field.owner.id
-# <<<<<<< HEAD
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-#                 }
-#             })
-#         else:
-#             return Response({'status': 'error', 'errors': serializer.errors}, status=400)
-# <<<<<<< HEAD
-# <<<<<<< HEAD
-
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
-# =======
-# >>>>>>> 44201ed514c481b9a8db64c3858b7093697d9d2f
 
 
 
