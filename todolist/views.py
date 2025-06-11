@@ -29,7 +29,7 @@ class FieldTodayInfoAPIView(APIView):
 
         # ✅ 쿼리 파라미터에서 날짜 받기, 없으면 오늘
         date_str = request.query_params.get('date')
-        target_date = parse_date(date_str) if date_str else datetime.today().date()
+        target_date = parse_datetime(date_str) if date_str else datetime.today().date()
         year, month = target_date.year, target_date.month
 
         # 오늘의 할 일 필터링 (target_date 기준)
