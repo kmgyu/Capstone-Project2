@@ -50,10 +50,9 @@ CUSTOM_APPS = [
     'fieldmanage',
     'todolist',
     'accounts',
-    #멀티파트
-    'multipart_picture',
+    'photoapp',
     'weather',  # ← ✅ 이거 추가하세요!
-
+    'dronemanage',
 ]
 
 THIRD_PARTY_APPS = [
@@ -186,9 +185,8 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ✅ 변경된 이미지 저장 경로
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/Capstone-Project2/storage'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'repository')
 
 
 # JWT token settings
@@ -232,3 +230,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+# ✅ 테스트용: 비동기 대신 즉시 실행하도록 Celery 설정 지원
+# CELERY_TASK_ALWAYS_EAGER = True
+# CELERY_TASK_EAGER_PROPAGATES = True

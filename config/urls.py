@@ -14,13 +14,12 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 #이미지 업로드 위치치
 from django.conf import settings
 from django.conf.urls.static import static
-
-
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -29,9 +28,10 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("field/", include("fieldmanage.urls")),
     path("todo/", include("todolist.urls")),
-    path("upload/", include("multipart_picture.urls")),  
+    path('photo/', include('photoapp.urls')),  
     path('weather/', include('weather.urls')),  
-
+    path('drone/', include("dronemanage.urls")),
+    path('damage/', include("damagemanage.urls")),
 ]
 
 if settings.DEBUG:
