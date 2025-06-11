@@ -2,6 +2,7 @@ import calendar
 from django.utils.timezone import make_aware
 from datetime import datetime
 
+from .utils import create_task_progress_entries, expand_tasks_by_date, deduplicate_tasks_per_day
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -10,11 +11,84 @@ from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
+from collections import Counter
 
 from .models import FieldTodo, Field, TaskProgress
 from fieldmanage.models import MonthlyKeyword
-from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer
-from .utils import create_task_progress_entries
+from .serializers import FieldTodoSerializer, TaskProgressUpdateSerializer, TodayFieldTodoSerializer
+
+
+from django.utils.timezone import make_aware, localtime
+
+class FieldTodayInfoAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, field_id):
+        user = request.user
+        field = get_object_or_404(Field, pk=field_id, owner=user)
+
+        # ✅ 쿼리 파라미터에서 날짜 받기, 없으면 오늘
+        date_str = request.query_params.get('date')
+        target_date = parse_date(date_str) if date_str else datetime.today().date()
+        year, month = target_date.year, target_date.month
+
+        # 오늘의 할 일 필터링 (target_date 기준)
+        todos = FieldTodo.objects.filter(owner=user, field=field)
+        today_tasks = []
+        for todo in todos:
+            task_dates = [(todo.start_date + timedelta(days=i)).date() for i in range(todo.period or 1)]
+            if target_date in task_dates:
+                today_tasks.append(todo)
+
+        today_task_serialized = TodayFieldTodoSerializer(today_tasks, many=True).data
+
+        # 진행률 계산 (target_date 기준)
+        done_today = TaskProgress.objects.filter(
+            task_id__in=[t.task_id for t in today_tasks],
+            date=target_date,
+            status='done'
+        ).count()
+        total_today = len(today_tasks)
+        today_progress_rate = int((done_today / total_today) * 100) if total_today > 0 else 0
+
+        # 월간 키워드 (target_date 기준)
+        keywords = []
+        try:
+            mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
+            keywords = mk.keywords
+        except MonthlyKeyword.DoesNotExist:
+            pass
+
+        # 월간 진행률 (target_date 기준)
+        month_start = make_aware(datetime(year, month, 1))
+        _, last_day = calendar.monthrange(year, month)
+        month_end = make_aware(datetime(year, month, last_day, 23, 59, 59))
+
+        monthly_tasks = FieldTodo.objects.filter(
+            owner=user,
+            field=field,
+            start_date__range=(month_start, month_end)
+        )
+
+        all_progresses = TaskProgress.objects.filter(
+            task_id__in=monthly_tasks,
+            date__range=(month_start.date(), month_end.date())
+        )
+
+        done_total = all_progresses.filter(status='done').count()
+        total_progress = all_progresses.count()
+        monthly_progress_rate = int((done_total / total_progress) * 100) if total_progress > 0 else 0
+
+        return Response({
+            "target_date": target_date,
+            "today_tasks": today_task_serialized,
+            "today_progress_rate": today_progress_rate,
+            "monthly_keywords": keywords,
+            "monthly_progress_rate": monthly_progress_rate
+        })
+
+
+
 
 # 한달 할 일 조회
 class MonthlyFieldTodoAPIView(APIView):
@@ -47,7 +121,7 @@ class MonthlyFieldTodoAPIView(APIView):
         # ✅ 키워드 가져오기
         keywords = []
         try:
-            mk = MonthlyKeyword.objects.get(field=field, year=year, month=month)
+            mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
             keywords = mk.keywords
         except MonthlyKeyword.DoesNotExist:
             pass
@@ -56,35 +130,86 @@ class MonthlyFieldTodoAPIView(APIView):
             "todos": FieldTodoSerializer(todos, many=True).data,
             "keywords": keywords
         })
-    
+
+
 class AllFieldTodosAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        todos = FieldTodo.objects.filter(owner=user)
-
         start = request.query_params.get('start')
         end = request.query_params.get('end')
 
-        if start and end:
-            try:
+        try:
+            if start and end:
                 start_date = parse_datetime(start)
                 end_date = parse_datetime(end)
                 if not (start_date and end_date):
                     raise ValueError
+            else:
+                raise ValueError
+        except ValueError:
+            today = datetime.today()
+            year, month = today.year, today.month
+            start_date = make_aware(datetime(year, month, 1))
+            _, last_day = calendar.monthrange(year, month)
+            end_date = make_aware(datetime(year, month, last_day, 23, 59, 59))
 
-                # 🛠️ aware datetime으로 변환
-                if start_date.tzinfo is None:
-                    start_date = make_aware(start_date)
-                if end_date.tzinfo is None:
-                    end_date = make_aware(end_date)
+        # ✅ 할 일 조회 및 중복 제거
+        todos = FieldTodo.objects.filter(owner=user, start_date__range=(start_date, end_date)).order_by('start_date', 'priority')
+        date_map = expand_tasks_by_date(todos)
+        final_result = deduplicate_tasks_per_day(date_map)
 
-                todos = todos.filter(start_date__range=(start_date, end_date))
-            except ValueError:
-                return Response({'error': '날짜 형식이 잘못되었습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        # ✅ 키워드 빈도 분석
+        year = start_date.year
+        month = start_date.month
+        fields = Field.objects.filter(owner=user)
 
-        serializer = FieldTodoSerializer(todos, many=True)
+        keyword_counter = Counter()
+
+        for field in fields:
+            try:
+                mk = MonthlyKeyword.objects.get(field_id=field, year=year, month=month)
+                for kw in mk.keywords:
+                    if isinstance(kw, dict) and 'keyword' in kw:
+                        keyword_counter[kw['keyword']] += 1
+            except MonthlyKeyword.DoesNotExist:
+                continue
+
+        # 상위 5개 키워드만 추출
+        top_keywords = [{"keyword": k, "count": v} for k, v in keyword_counter.most_common(5)]
+
+        return Response({
+            "todos": final_result,
+            "top_keywords": top_keywords  # ✅ 여기서 상위 5개만 응답
+        })
+
+    
+# 특정 날의 사용자가 소유한 모든 노지의 할 일을 조회
+class DailyTodosAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        date = request.query_params.get("date")
+        if not date:
+            return Response({'error': 'date 파라미터는 필수입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            target_date = parse_datetime(date).date()
+        except Exception:
+            return Response({'error': '날짜 형식이 잘못되었습니다. YYYY-MM-DD 형식으로 주세요.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        todos = FieldTodo.objects.filter(owner=user)
+
+        result = []
+        for todo in todos:
+            todo_dates = [todo.start_date.date() + timedelta(days=i) for i in range(todo.period or 1)]
+            if target_date in todo_dates:
+                result.append(todo)
+
+        serializer = FieldTodoSerializer(result, many=True)
         return Response(serializer.data)
     
 # 사용자 기준 Todo 기간 목록 조회 및 생성
