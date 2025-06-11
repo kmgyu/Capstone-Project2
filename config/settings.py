@@ -52,7 +52,7 @@ CUSTOM_APPS = [
     'accounts',
     'photoapp',
     'weather',  # ← ✅ 이거 추가하세요!
-
+    'dronemanage',
 ]
 
 THIRD_PARTY_APPS = [
@@ -230,3 +230,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+# ✅ 테스트용: 비동기 대신 즉시 실행하도록 Celery 설정 지원
+# CELERY_TASK_ALWAYS_EAGER = True
+# CELERY_TASK_EAGER_PROPAGATES = True
