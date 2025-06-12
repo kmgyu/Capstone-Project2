@@ -1,6 +1,6 @@
 // src/components/HeroSection.js
 import { useState, useEffect, useCallback } from 'react';
-import { Calendar, CheckCircle, Bookmark, Activity, Sun, Wind, Trash2 } from 'lucide-react';
+import { Calendar, CheckCircle, Bookmark, Activity, Sun, Wind, Trash2, Droplets, Scissors, Shield, Sprout, Truck, Eye } from 'lucide-react';
 import AddTodoModal from './AddTodoModal';
 import todoService from '../services/todoService';
 import moment from 'moment';
@@ -8,11 +8,108 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarDay, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import '../css/HeroSection.css';
 
-export default function HeroSection() {
+// 키워드 매핑 테이블
+const KEYWORD_MAPPING = {
+  // 정확한 키워드 매칭
+  "배추 묘 심기": { icon: <Sprout size={16} />, color: "bg-green" },
+  "비료 시비": { icon: <Sun size={16} />, color: "bg-amber" },
+  "잡초 제거": { icon: <Scissors size={16} />, color: "bg-orange" },
+  "물관리": { icon: <Droplets size={16} />, color: "bg-blue" },
+  "병충해 예방": { icon: <Shield size={16} />, color: "bg-red" },
+  "병충해 관리": { icon: <Activity size={16} />, color: "bg-red" },
+  "작물 성장": { icon: <Activity size={16} />, color: "bg-green" },
+  "토양 상태": { icon: <Sun size={16} />, color: "bg-amber" },
+  "날씨 대응": { icon: <Wind size={16} />, color: "bg-blue" },
+  "수확 계획": { icon: <Calendar size={16} />, color: "bg-purple" },
+};
+
+// 부분 일치 매핑 (포함 키워드 기반)
+const PARTIAL_KEYWORD_MAPPING = [
+  // 파종/심기 관련
+  { keywords: ["심기", "파종", "정식", "모종"], icon: <Sprout size={16} />, color: "bg-green" },
+  
+  // 비료/영양 관련
+  { keywords: ["비료", "시비", "거름", "영양"], icon: <Sun size={16} />, color: "bg-amber" },
+  
+  // 잡초/제거 관련
+  { keywords: ["잡초", "제거", "방제", "정리"], icon: <Scissors size={16} />, color: "bg-orange" },
+  
+  // 물/관수 관련
+  { keywords: ["물", "관수", "급수", "물주기", "관리"], icon: <Droplets size={16} />, color: "bg-blue" },
+  
+  // 병충해 관련
+  { keywords: ["병충해", "해충", "질병", "방제", "예방"], icon: <Shield size={16} />, color: "bg-red" },
+  
+  // 수확 관련
+  { keywords: ["수확", "채취", "출하"], icon: <Truck size={16} />, color: "bg-purple" },
+  
+  // 관찰/점검 관련
+  { keywords: ["점검", "관찰", "모니터링", "확인"], icon: <Eye size={16} />, color: "bg-gray" },
+];
+
+// 기본값
+const DEFAULT_KEYWORD_STYLE = {
+  icon: <Activity size={16} />,
+  color: "bg-gray"
+};
+
+/**
+ * 키워드 문자열을 받아서 해당하는 아이콘과 색상을 반환하는 함수
+ */
+function getKeywordStyle(keyword) {
+  if (!keyword || typeof keyword !== 'string') {
+    return DEFAULT_KEYWORD_STYLE;
+  }
+
+  // 1. 정확한 키워드 매칭 시도
+  if (KEYWORD_MAPPING[keyword]) {
+    return KEYWORD_MAPPING[keyword];
+  }
+
+  // 2. 부분 일치 매핑 시도
+  for (const mapping of PARTIAL_KEYWORD_MAPPING) {
+    if (mapping.keywords.some(k => keyword.includes(k))) {
+      return {
+        icon: mapping.icon,
+        color: mapping.color
+      };
+    }
+  }
+
+  // 3. 매칭되지 않으면 기본값 반환
+  return DEFAULT_KEYWORD_STYLE;
+}
+
+/**
+ * API에서 받은 키워드 배열을 UI용 키워드 객체 배열로 변환
+ */
+function formatKeywordsForUI(monthlyKeywords) {
+  if (!Array.isArray(monthlyKeywords)) {
+    return [];
+  }
+
+  return monthlyKeywords.map(item => {
+    const keyword = item.keyword || '';
+    const style = getKeywordStyle(keyword);
+    
+    return {
+      text: keyword,
+      icon: style.icon,
+      color: style.color
+    };
+  });
+}
+
+export default function HeroSection(field) {
   const [todos, setTodos] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [loadingId, setLoadingId] = useState(null); // 체크 버튼 로딩 표시
   const [addLoading, setAddLoading] = useState(false);
+  
+  // 월간 키워드와 진행도 상태 추가
+  const [monthlyKeywords, setMonthlyKeywords] = useState([]);
+  const [monthProgress, setMonthProgress] = useState(0);
+  const [loadingKeywords, setLoadingKeywords] = useState(false);
 
   // 오늘 날짜(YYYY-MM-DD)
   const today = moment().format('YYYY-MM-DD');
@@ -37,6 +134,44 @@ export default function HeroSection() {
       window.removeEventListener('todayTodosUpdated', updateTodosFromSession);
     };
   }, []);
+
+  // 오늘 정보 및 월간 데이터 로드
+  useEffect(() => {
+    const fetchTodayInfo = async () => {
+      setLoadingKeywords(true);
+      try {
+        // sessionStorage에서 fieldId 가져오기 (또는 props나 context에서)
+        const fieldId = field?.field_id || sessionStorage.getItem('main_field');
+        if (!fieldId) {
+          throw new Error('필드 정보가 없습니다.');
+        }
+
+        // todoService의 todayinfo API 사용
+        const data = await todoService.todayinfo(fieldId, today);
+        console.log('오늘 정보:', data);
+        // 키워드 데이터 처리
+        if (data.monthly_keywords) {
+          const formattedKeywords = formatKeywordsForUI(data.monthly_keywords);
+          setMonthlyKeywords(formattedKeywords);
+        }
+      } catch (error) {
+        console.error('오늘 정보 로드 실패:', error);
+        // 실패 시 기본값 사용
+        setMonthlyKeywords(formatKeywordsForUI([
+          { keyword: "배추 묘 심기" },
+          { keyword: "비료 시비" },
+          { keyword: "잡초 제거" },
+          { keyword: "물관리" },
+          { keyword: "병충해 예방" }
+        ]));
+        setMonthProgress(0);
+      } finally {
+        setLoadingKeywords(false);
+      }
+    };
+
+    fetchTodayInfo();
+  }, [today]);
 
   // 완료 상태(오늘) progresses에서 status === 'done'
   const isCompleted = useCallback(
@@ -94,7 +229,9 @@ export default function HeroSection() {
       setTodos((prevTodos) => {
         const updatedTodos = prevTodos.filter((todo) => todo.id !== id);
         sessionStorage.setItem('todayTodos', JSON.stringify(updatedTodos));
-        window.dispatchEvent(new Event('todayTodosUpdated')); // 캘린더 등 갱신
+        window.dispatchEvent(new Event('todayTodosUpdated')); // 기존 이벤트
+        // 삭제 전용 이벤트 추가
+        window.dispatchEvent(new CustomEvent('todoDeleted', { detail: { id } }));
         return updatedTodos;
       });
     } catch (e) {
@@ -129,6 +266,7 @@ export default function HeroSection() {
 
       // 캘린더용 포맷 변환
       const [todoItem] = todoService.formatTodosForCalendar([created]);
+      console.log('새로 추가된 할 일:', todoItem);
       if (!todoItem) throw new Error('응답 데이터 변환 실패');
 
       setTodos(prevTodos => {
@@ -146,47 +284,34 @@ export default function HeroSection() {
     }
   };
 
-  // 키워드
-  const keywords = [
-    { text: '병충해 관리', color: 'bg-red', icon: <Activity size={16} /> },
-    { text: '작물 성장', color: 'bg-green', icon: <Activity size={16} /> },
-    { text: '토양 상태', color: 'bg-amber', icon: <Sun size={16} /> },
-    { text: '날씨 대응', color: 'bg-blue', icon: <Wind size={16} /> },
-    { text: '수확 계획', color: 'bg-purple', icon: <Calendar size={16} /> },
-  ];
-
   // 오늘 할 일 완료율 계산
   const total = todos.length;
   const completed = todos.filter(t => isCompleted(t)).length;
   const todayProgressPercent = total ? Math.round((completed / total) * 100) : 0;
-  const monthProgressPercent = 35; // 예시
 
   return (
     <>
       <div className="hero-section">
-        {/* 상단 - 5월 핵심 키워드 */}
+        {/* 상단 - 월간 핵심 키워드 */}
         <div className="keywords-section">
           <div className="section-header">
-            <Bookmark /> 5월 핵심 키워드
+            <Bookmark /> {moment().format('M')}월 핵심 키워드
           </div>
-          <div className="keywords-container">
-            {keywords.map((keyword, idx) => (
-              <div key={idx} className={`keyword-badge ${keyword.color}`}>
-                {keyword.icon}
-                {keyword.text}
-              </div>
-            ))}
-          </div>
-          <div className="progress-section">
-            <div className="progress-label">이번 달 진행 상황</div>
-            <div className="progress-bar-bg">
-              <div
-                className="progress-bar-fill"
-                style={{ width: `${monthProgressPercent}%` }}
-              ></div>
+          
+          {loadingKeywords ? (
+            <div className="keywords-container">
+              <div className="loading-message">키워드를 불러오는 중...</div>
             </div>
-            <p className="progress-text">{monthProgressPercent}% 완료</p>
-          </div>
+          ) : (
+            <div className="keywords-container">
+              {monthlyKeywords.map((keyword, idx) => (
+                <div key={idx} className={`keyword-badge ${keyword.color}`}>
+                  {keyword.icon}
+                  {keyword.text}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 하단 - 오늘의 할 일 */}

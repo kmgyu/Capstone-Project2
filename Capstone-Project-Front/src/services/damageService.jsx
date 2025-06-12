@@ -29,17 +29,20 @@ async function getAuthHeaders() {
 }
 
 const damageService = {
-
-  damagemanage: async () => {
+  damagemanage: async (fieldId) => {
     try {
       const headers = await getAuthHeaders();
-      const response = await api.get('/damagemanage/', { headers });
+      console.log('서비스 파일',fieldId)
+      // 쿼리스트링 조건부로 추가
+      const url = fieldId 
+        ? `/damagemanage/?field_id=${fieldId}`
+        : '/damagemanage/';
+      const response = await api.get(url, { headers });
       return response.data;
     } catch (error) {
       throw error.response?.data || error;
     }
   },
-
 };
 
 export default damageService;

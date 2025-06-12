@@ -277,7 +277,59 @@
     background-color: #aaa;
     cursor: not-allowed;
   }
+  .verify-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  color: #fff;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(77, 139, 49, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.verify-button:hover {
+  background-color: var(--dark-color);
+  box-shadow: 0 2px 6px rgba(77, 139, 49, 0.10);
+}
+
+.verify-button:disabled {
+  background-color: #ccc;
+  color: #eee;
+  cursor: not-allowed;
+  box-shadow: none;
+}
   
+.form-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.validation-message {
+  font-size: 14px;
+  min-height: 20px;
+  white-space: pre-line;
+  /* 상황에 따라 max-width: 60% 추가 가능 */
+}
+.validation-message.success {
+  color: #388e3c;
+}
+.validation-message.error {
+  color: #f44336;
+}
+
+.actions-buttons {
+  display: flex;
+  gap: 10px;
+}
   /* 반응형 디자인 */
   @media (min-width: 768px) {
     /* .modal-content {

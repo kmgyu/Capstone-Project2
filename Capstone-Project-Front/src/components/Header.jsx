@@ -32,8 +32,8 @@ const Header = ({ onLogout, field }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [weatherInfo, setWeatherInfo] = useState({
     icon: faSun,
-    description: '맑음',
-    temperature: 22
+    description: '로딩중',
+    temperature: '-'
   });
   const [name, setName] = useState(''); 
 
@@ -52,32 +52,54 @@ const Header = ({ onLogout, field }) => {
     const fetchWeather = async () => {
       const fieldId = field?.field_id || sessionStorage.getItem('main_field');
       const token   = authService.getAccessToken();
-      if (!fieldId || !token) return false;           // 준비 안 됨
+      if (!fieldId || !token) return false;
 
       try {
-        console.log('날씨 정보 요청:', fieldId);
+        // 1. 세션스토리지에서 날씨 정보 확인 (필드별로 key 구분 가능)
+        const storageKey = `weatherInfo_${fieldId}`;
+        const cached = sessionStorage.getItem(storageKey);
+        if (cached) {
+          const cachedWeather = JSON.parse(cached);
+          // 2. 캐시 유효기간 30분 체크
+          const now = Date.now();
+          if (now - cachedWeather.timestamp < 30 * 60 * 1000) {
+            setWeatherInfo(cachedWeather.weatherInfo);
+            return true; // 바로 사용 (API 미호출)
+          }
+        }
+
+        // 3. API 호출 (최초이거나 30분 지난 경우)
         const data = await weatherService.getWeather(fieldId);
-        console.log('날씨 정보 응답:', data);
-        if (unmounted) return true;
-        setWeatherInfo({
+        const newWeatherInfo = {
           icon: weatherIconMap[data.weather] ?? faSun,
           description: data.weather,
           temperature: Math.round(data.temperature)
-        });
-        return true;                                  // 성공
+        };
+
+        // 4. 기존값과 동일한지 비교
+        if (!cached || JSON.stringify(JSON.parse(cached).weatherInfo) !== JSON.stringify(newWeatherInfo)) {
+          setWeatherInfo(newWeatherInfo);
+        }
+
+        // 5. 세션스토리지에 저장 (타임스탬프 포함)
+        sessionStorage.setItem(storageKey, JSON.stringify({
+          weatherInfo: newWeatherInfo,
+          timestamp: Date.now()
+        }));
+
+        return true;
       } catch (e) {
         if (e.response?.status !== 401) console.error('날씨 실패:', e);
         return false;
       }
     };
 
-    // 1초 간격 재시도
     retryId = setInterval(async () => {
       if (await fetchWeather()) {
         clearInterval(retryId);
-        intervalId = setInterval(fetchWeather, 30 * 60 * 1000); // 30 min
+        intervalId = setInterval(fetchWeather, 30 * 60 * 1000); // 30분마다 재조회
       }
-    }, 500);
+    }, 1000);
 
     return () => {
       unmounted = true;
@@ -119,7 +141,7 @@ const Header = ({ onLogout, field }) => {
           <li><Link to="/" className={window.location.pathname === '/' ? 'active' : ''}>홈</Link></li>
           <li><Link to="/droneview" className={window.location.pathname === '/droneview' ? 'active' : ''}>드론 현황</Link></li>
           <li><Link to="/farmland" className={window.location.pathname === '/farmland' ? 'active' : ''}>농장 관리</Link></li>
-          <li><a href="#">도움말</a></li>
+          {/* <li><a href="#">도움말</a></li> */}
         </ul>
         
         <div className="header-right">

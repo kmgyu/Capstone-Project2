@@ -62,6 +62,19 @@ const Dashboard = ({ field }) => {
     window.addEventListener('todayTodosUpdated', handleTodayTodosUpdated);
     return () => window.removeEventListener('todayTodosUpdated', handleTodayTodosUpdated);
   }, []);
+
+  // 삭제 전용 이벤트 처리
+  useEffect(() => {
+    const handleTodoDeleted = (event) => {
+      const deletedId = event.detail.id;
+      setSchedules(prevSchedules => 
+        prevSchedules.filter(sched => sched.id !== deletedId)
+      );
+    };
+
+    window.addEventListener('todoDeleted', handleTodoDeleted);
+    return () => window.removeEventListener('todoDeleted', handleTodoDeleted);
+  }, []);
   // 세션 스토리지에 오늘의 할 일 저장하는 함수 (원본 데이터 그대로)
   const saveTodayTodosToSession = useCallback((allSchedules) => {
     const today = moment().format('YYYY-MM-DD');
@@ -139,10 +152,13 @@ const Dashboard = ({ field }) => {
         userTodos = await todoService.getTodos(fieldId, firstDate, lastDate);
       } else {
         // 없으면 전체 일정
+        console.log('전체 일정 조회');
         userTodos = await todoService.getAllTodos(firstDate, lastDate);
+        console.log('전체 일정 조회 결과:', userTodos);
       }
       
       const formattedTodos = todoService.formatTodosForCalendar(userTodos);      
+      console.log('포맷된 일정 데이터:', formattedTodos);
       // 캐시에 저장
       monthlyDataCache.current.set(cacheKey, formattedTodos);
       

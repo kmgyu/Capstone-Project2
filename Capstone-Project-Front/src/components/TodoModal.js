@@ -105,7 +105,6 @@ const TodoModal = ({
                         style={{ 
                           cursor: 'pointer', 
                           padding: '5px',
-                          border: '1px solid red' // 임시로 영역 확인용
                         }}
                       >
                         <input

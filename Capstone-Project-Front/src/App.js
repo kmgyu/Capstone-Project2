@@ -393,7 +393,7 @@ function AppRoutes() {
           </div>
         </main>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 
@@ -409,7 +409,7 @@ function AppRoutes() {
           </div>
         </main>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 
@@ -429,7 +429,7 @@ function AppRoutes() {
           </div>
         </main>
       </div>
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
   function FarmlandDetailPage() {
@@ -449,7 +449,7 @@ function AppRoutes() {
 
     if (loading) return <div style={{ textAlign: 'center' }}>로딩 중...</div>;
     if (!field) return <div style={{ textAlign: 'center' }}>노지 정보를 찾을 수 없습니다.</div>;
-
+    console.log('선택된 필드:', field);
     // 기존 홈페이지 구조와 동일, field만 prop으로 내려줌
     return (
       <>
@@ -464,7 +464,7 @@ function AppRoutes() {
             </div>
           </main>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </>
     );
   }

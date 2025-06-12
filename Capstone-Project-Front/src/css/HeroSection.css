@@ -61,7 +61,9 @@
 .bg-amber {
   background-color: var(--accent-color);
 }
-
+.bg-orange {
+  background-color: #f97316;
+}
 .bg-blue {
   background-color: #3b82f6;
 }
@@ -69,7 +71,9 @@
 .bg-purple {
   background-color: #a855f7;
 }
-
+.bg-gray {
+  background-color: #6b7280;
+}
 .progress-label {
   font-size: 14px;
   color: #6b7280;

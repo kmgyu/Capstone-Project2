@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, AlertTriangle, Calendar, Eye, X } from 'lucide-react';
 import '../css/PestDiseaseMap.css';
@@ -9,17 +8,39 @@ const KAKAO_MAP_LIBS = "services,drawing";
 
 // API 데이터를 슬라이드 형태로 변환하는 함수
 const transformApiDataToSlides = (apiData) => {
+  // apiData가 배열이 아닌 경우 빈 배열 반환
+  if (!Array.isArray(apiData) || apiData.length === 0) {
+    console.log('API 데이터가 배열이 아니거나 비어있습니다:', apiData);
+    return [];
+  }
+
   const fieldGroups = {};
   
   // field_id별로 그룹핑
   apiData.forEach(item => {
     const fieldId = item.field_id;
     if (!fieldGroups[fieldId]) {
+      // geometry 안전하게 파싱
+      let geometry;
+      try {
+        if (typeof item.geometry === 'string') {
+          geometry = JSON.parse(item.geometry);
+        } else if (typeof item.geometry === 'object' && item.geometry !== null) {
+          geometry = item.geometry;
+        } else {
+          console.warn('geometry 데이터가 올바르지 않습니다:', item.geometry);
+          geometry = null;
+        }
+      } catch (error) {
+        console.error('geometry 파싱 실패:', error, item.geometry);
+        geometry = null;
+      }
+
       fieldGroups[fieldId] = {
         id: fieldId,
         name: item.field_name,
         description: item.description,
-        geometry: JSON.parse(item.geometry),
+        geometry: geometry,
         pests: []
       };
     }
@@ -34,7 +55,7 @@ const transformApiDataToSlides = (apiData) => {
     });
   });
   
-  return Object.values(fieldGroups);
+  return Object.values(fieldGroups).filter(field => field.geometry !== null);
 };
 
 const loadKakaoMapScript = () => {
@@ -54,7 +75,7 @@ const loadKakaoMapScript = () => {
   });
 };
 
-const PestDiseaseMap = () => {
+const PestDiseaseMap = (field) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideData, setSlideData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,8 +91,22 @@ const PestDiseaseMap = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await damageService.damagemanage();
-        const transformedData = transformApiDataToSlides(response.results);
+        const fieldId = field?.field_id;
+        console.log('필드 ID:', fieldId);
+        const response = await damageService.damagemanage(fieldId);
+        console.log('-----------------------------------------------------')
+        console.log('API 응답:', response);
+        
+        // API 응답에서 results 배열 추출
+        const apiData = response?.results || [];
+        console.log('추출된 results 배열:', apiData);
+        console.log('첫 번째 아이템의 geometry 타입:', typeof apiData[0]?.geometry);
+        console.log('첫 번째 아이템의 geometry 값:', apiData[0]?.geometry);
+        
+        const transformedData = transformApiDataToSlides(apiData);
+        console.log('변환된 데이터:', transformedData);
+        console.log('-----------------------------------------------------')
+
         setSlideData(transformedData);
         setError(null);
       } catch (err) {
@@ -84,7 +119,7 @@ const PestDiseaseMap = () => {
     };
 
     loadData();
-  }, []);
+  }, [field?.field_id]);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slideData.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slideData.length) % slideData.length);
@@ -118,29 +153,45 @@ const PestDiseaseMap = () => {
     let infoWindowJustOpened = false;
     if (slideData.length === 0) return;
     
-    const { geometry, pests } = slideData[currentSlide];
+    const current = slideData[currentSlide];
+    if (!current || !current.geometry) {
+      console.error('현재 슬라이드 데이터가 올바르지 않습니다:', current);
+      return;
+    }
+
+    const { geometry, pests } = current;
     
     // 중심점 계산 (폴리곤의 중심)
     let centerLat = 0, centerLng = 0, pointCount = 0;
     
-    if (geometry.type === "Polygon") {
-      geometry.coordinates[0].forEach(coord => {
-        centerLng += coord[0];
-        centerLat += coord[1];
-        pointCount++;
-      });
-    } else if (geometry.type === "MultiPolygon") {
-      geometry.coordinates.forEach(polygon => {
-        polygon[0].forEach(coord => {
+    try {
+      if (geometry.type === "Polygon") {
+        geometry.coordinates[0].forEach(coord => {
           centerLng += coord[0];
           centerLat += coord[1];
           pointCount++;
         });
-      });
+      } else if (geometry.type === "MultiPolygon") {
+        geometry.coordinates.forEach(polygon => {
+          polygon[0].forEach(coord => {
+            centerLng += coord[0];
+            centerLat += coord[1];
+            pointCount++;
+          });
+        });
+      }
+      
+      if (pointCount === 0) {
+        console.error('좌표 점이 없습니다:', geometry);
+        return;
+      }
+      
+      centerLat /= pointCount;
+      centerLng /= pointCount;
+    } catch (error) {
+      console.error('좌표 계산 중 오류:', error, geometry);
+      return;
     }
-    
-    centerLat /= pointCount;
-    centerLng /= pointCount;
     
     const center = new window.kakao.maps.LatLng(centerLat, centerLng);
     const map = new window.kakao.maps.Map(mapRef.current, {
@@ -157,79 +208,85 @@ const PestDiseaseMap = () => {
     infoWindowsRef.current = [];
 
     // 폴리곤 그리기
-    if (geometry.type === "Polygon") {
-      const path = geometry.coordinates[0].map(coord => 
-        new window.kakao.maps.LatLng(coord[1], coord[0])
-      );
-      const polygon = new window.kakao.maps.Polygon({
-        map,
-        path,
-        strokeWeight: 3,
-        strokeColor: '#4d8b31',
-        strokeOpacity: 0.8,
-        fillColor: '#8bc34a',
-        fillOpacity: 0.2
-      });
-      overlaysRef.current.push(polygon);
-    } else if (geometry.type === "MultiPolygon") {
-      geometry.coordinates.forEach(polygonArr => {
-        polygonArr.forEach(ring => {
-          const path = ring.map(coord => new window.kakao.maps.LatLng(coord[1], coord[0]));
-          const polygon = new window.kakao.maps.Polygon({
-            map,
-            path,
-            strokeWeight: 3,
-            strokeColor: '#4d8b31',
-            strokeOpacity: 0.8,
-            fillColor: '#8bc34a',
-            fillOpacity: 0.2
-          });
-          overlaysRef.current.push(polygon);
+    try {
+      if (geometry.type === "Polygon") {
+        const path = geometry.coordinates[0].map(coord => 
+          new window.kakao.maps.LatLng(coord[1], coord[0])
+        );
+        const polygon = new window.kakao.maps.Polygon({
+          map,
+          path,
+          strokeWeight: 3,
+          strokeColor: '#4d8b31',
+          strokeOpacity: 0.8,
+          fillColor: '#8bc34a',
+          fillOpacity: 0.2
         });
-      });
+        overlaysRef.current.push(polygon);
+      } else if (geometry.type === "MultiPolygon") {
+        geometry.coordinates.forEach(polygonArr => {
+          polygonArr.forEach(ring => {
+            const path = ring.map(coord => new window.kakao.maps.LatLng(coord[1], coord[0]));
+            const polygon = new window.kakao.maps.Polygon({
+              map,
+              path,
+              strokeWeight: 3,
+              strokeColor: '#4d8b31',
+              strokeOpacity: 0.8,
+              fillColor: '#8bc34a',
+              fillOpacity: 0.2
+            });
+            overlaysRef.current.push(polygon);
+          });
+        });
+      }
+    } catch (error) {
+      console.error('폴리곤 그리기 중 오류:', error);
     }
 
     // 병해충 위치에 마커 표시 (중심점 근처에 랜덤 배치)
-    pests.forEach((pest, idx) => {
-      const pestLat = centerLat;
-      const pestLng = centerLng;
+    if (pests && Array.isArray(pests)) {
+      pests.forEach((pest, idx) => {
+        const pestLat = centerLat;
+        const pestLng = centerLng;
 
-      const circle = new window.kakao.maps.Circle({
-        map,
-        center: new window.kakao.maps.LatLng(pestLat, pestLng),
-        radius: 3,
-        strokeWeight: 2,
-        strokeColor: '#f44336',
-        strokeOpacity: 0.7,
-        fillColor: '#f44336',
-        fillOpacity: 0.4
+        const circle = new window.kakao.maps.Circle({
+          map,
+          center: new window.kakao.maps.LatLng(pestLat, pestLng),
+          radius: 3,
+          strokeWeight: 2,
+          strokeColor: '#f44336',
+          strokeOpacity: 0.7,
+          fillColor: '#f44336',
+          fillOpacity: 0.4
+        });
+        overlaysRef.current.push(circle);
+
+        const infowindow = new window.kakao.maps.InfoWindow({
+          position: new window.kakao.maps.LatLng(pestLat, pestLng),
+          content: `<div style="font-size:12px;padding:2px 5px;">${pest.type}: ${pest.name}</div>`
+        });
+        infoWindowsRef.current.push(infowindow);
+
+        // 원 클릭 시 해당 InfoWindow만 열기
+        window.kakao.maps.event.addListener(circle, 'click', function () {
+          infoWindowsRef.current.forEach(iw => iw.close());
+          infowindow.open(map, null);
+          infoWindowJustOpened = true;
+        });
       });
-      overlaysRef.current.push(circle);
-
-      const infowindow = new window.kakao.maps.InfoWindow({
-        position: new window.kakao.maps.LatLng(pestLat, pestLng),
-        content: `<div style="font-size:12px;padding:2px 5px;">${pest.type}: ${pest.name}</div>`
-      });
-      infoWindowsRef.current.push(infowindow);
-
-      // 원 클릭 시 해당 InfoWindow만 열기
-      window.kakao.maps.event.addListener(circle, 'click', function () {
-        infoWindowsRef.current.forEach(iw => iw.close());
-        infowindow.open(map, null); // null로 넣어야 정상 동작!
-        infoWindowJustOpened = true; // 2. flag 세팅
-
-      });
-    });
+    }
 
     // **지도 클릭 시 모든 InfoWindow 닫기**
     window.kakao.maps.event.addListener(map, 'click', () => {
       if (infoWindowJustOpened) {
         infoWindowJustOpened = false;
-        return; // 4. 한 번 무시
+        return;
       }
       infoWindowsRef.current.forEach(iw => iw.close());
     });
   };
+
   // 로딩 중이거나 에러 상태 처리
   if (loading) {
     return (
@@ -308,7 +365,7 @@ const PestDiseaseMap = () => {
               <h3>발생 현황</h3>
             </div>
 
-            {current.pests.map((pest, index) => (
+            {current.pests && current.pests.map((pest, index) => (
               <div key={index} className="report-card">
                 <div className="report-header">
                   <div className="report-title">

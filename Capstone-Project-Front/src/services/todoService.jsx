@@ -44,6 +44,7 @@ const todoService = {
       const params = {};
       if (start) params.start = start;
       if (end) params.end = end;
+      console.log('전체 할 일 조회 요청 파라미터:', params);  // ✅ 추가
       const response = await api.get('/todo/todos/all/', { params, headers });
       return response.data;
     } catch (error) {
@@ -146,6 +147,24 @@ const todoService = {
     }
   },
 
+  // 특정 노지의 오늘의 할 일 및 키워드/진행도 조회
+  todayinfo: async (fieldId, date) => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await api.get(
+        `/todo/todos/fields/${fieldId}/today-info/`,
+        {
+          headers,
+          params: { date } // 쿼리 파라미터로 날짜 전달
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('오늘 할 일 조회 오류:', error);
+      throw error;
+    }
+  },
+  
   //** 캘린더용 포맷 변환 **/
   formatTodosForCalendar: (todos) => {
     if (!Array.isArray(todos)) return [];

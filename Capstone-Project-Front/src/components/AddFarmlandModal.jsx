@@ -193,8 +193,8 @@ const AddFarmlandModal = ({
       }
       
       const options = {
-        center: new window.kakao.maps.LatLng(36.5, 127.5), // 한국 중심 좌표
-        level: 11 // 초기 줌 레벨
+        center: new window.kakao.maps.LatLng(34.908500987038344, 126.43442506516143), // 한국 중심 좌표
+        level: 3 // 초기 줌 레벨
       };
 
       map.current = new window.kakao.maps.Map(mapContainer.current, options);
@@ -649,26 +649,25 @@ const AddFarmlandModal = ({
               ></textarea>
             </div>
             
-            <div className="form-actions">
-              <button
-                type="button"
-                className="verify-button"
-                onClick={handleVerifyBBox}
-                disabled={!rectangleBounds}
-              >
-                필지 검증
-              </button>
-              <button type="submit" className="save-button" disabled={!isValidationPassed}>
-                <FontAwesomeIcon icon={faSave} />
-                {isEditMode ? '수정하기' : '저장하기'}
-              </button>
-            </div>
-
-            {validationMessage && (
-              <p className={`validation-message ${isValidationPassed ? 'success' : 'error'}`}>
+            <div className="form-actions-row">
+              <div className={`validation-message ${isValidationPassed ? 'success' : 'error'}`}>
                 {validationMessage}
-              </p>
-            )}
+              </div>
+              <div className="actions-buttons">
+                <button
+                  type="button"
+                  className="verify-button"
+                  onClick={handleVerifyBBox}
+                  disabled={!rectangleBounds}
+                >
+                  필지 검증
+                </button>
+                <button type="submit" className="save-button" disabled={!isValidationPassed}>
+                  <FontAwesomeIcon icon={faSave} />
+                  {isEditMode ? '수정하기' : '저장하기'}
+                </button>
+              </div>
+            </div>
           </form>
         </div>
       </div>

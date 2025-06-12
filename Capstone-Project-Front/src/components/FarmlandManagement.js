@@ -73,8 +73,6 @@ const FarmlandManagement = () => {
     switch (sortOption) {
       case 'newest':
         return [...lands].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      case 'oldest':
-        return [...lands].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       case 'name_asc':
         return [...lands].sort((a, b) => a.field_name.localeCompare(b.field_name));
       case 'name_desc':
@@ -121,6 +119,7 @@ const FarmlandManagement = () => {
     ) {
       return;
     }
+    console.log('카드 클릭:', field_id);
     navigate(`/farmland/${field_id}`);
   };
 
@@ -149,14 +148,13 @@ const FarmlandManagement = () => {
               <FontAwesomeIcon icon={faSort} />
               <span>
                 {sortOption === 'newest' && '최신순'}
-                {sortOption === 'oldest' && '오래된순'}
                 {sortOption === 'name_asc' && '이름(오름차순)'}
                 {sortOption === 'name_desc' && '이름(내림차순)'}
               </span>
             </button>
             {showSortOptions && (
               <div className="sort-dropdown">
-                {['newest', 'oldest', 'name_asc', 'name_desc'].map(opt => (
+                {['newest', 'name_asc', 'name_desc'].map(opt => (
                   <div
                     key={opt}
                     className={`sort-option ${sortOption === opt ? 'active' : ''}`}
@@ -166,7 +164,6 @@ const FarmlandManagement = () => {
                     }}
                   >
                     {opt === 'newest' && '최신순'}
-                    {opt === 'oldest' && '오래된순'}
                     {opt === 'name_asc' && '이름 (오름차순)'}
                     {opt === 'name_desc' && '이름 (내림차순)'}
                   </div>
