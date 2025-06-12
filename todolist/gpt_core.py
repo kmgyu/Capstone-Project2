@@ -27,92 +27,123 @@ GPT = "gpt-4"
 today = datetime.today().date()
 
 
-# -------- 공통 유틸 함수 -------- #
-# 중복 검사 (이름, 내용 둘 중에 하나라도 중복 시 제외외)
+from datetime import datetime, timedelta, time
+from django.utils.timezone import make_aware, is_naive
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# --- 공통 함수 ---
+
+def expand_task_dates(task):
+    base = task.start_date.date()
+    return [base + timedelta(days=i) for i in range(task.period or 1)]
+
 def is_duplicate_by_cosine(name, content, existing_tasks, threshold=0.75):
     if not existing_tasks:
-        return False  # 비교 대상 없으면 중복 아님
+        return False
 
     name_texts = [t.task_name for t in existing_tasks]
     content_texts = [t.task_content or '' for t in existing_tasks]
+
+    # ✅ 제목 완전 일치 검사
+    if name in name_texts:
+        print(f"[중복: 이름 완전일치] {name}")
+        return True
 
     # 이름 유사도 검사
     name_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
     name_vectors = name_vectorizer.fit_transform([name] + name_texts)
     name_similarity = cosine_similarity(name_vectors[0:1], name_vectors[1:])
+    print("이름 유사도:", name_similarity[0])
     if any(score >= threshold for score in name_similarity[0]):
-        return True  # 이름 기준 충족 → 중복
+        return True
 
     # 내용 유사도 검사
     content_vectorizer = TfidfVectorizer(tokenizer=okt.morphs, token_pattern=None)
     content_vectors = content_vectorizer.fit_transform([content] + content_texts)
     content_similarity = cosine_similarity(content_vectors[0:1], content_vectors[1:])
+    print("내용 유사도:", content_similarity[0])
     if any(score >= threshold for score in content_similarity[0]):
-        return True  # 내용 기준 충족 → 중복
+        return True
 
-    return False  # 이름/내용 모두 기준 미달 → 중복 아님
+    return False
 
 
+# --- 메인 저장 함수 ---
 
 def save_task(user, field, task_data, start_date):
-    # 문자열이면 datetime으로 파싱
+    # 날짜 처리
     if isinstance(start_date, str):
         try:
             start_date = datetime.strptime(start_date, "%Y-%m-%d")
         except Exception as e:
             print(f"[Invalid date string in save_task]: {start_date} => {e}")
             return
-
-    # date 객체면 datetime으로 변환
-    elif isinstance(start_date, datetime) is False:
+    elif not isinstance(start_date, datetime):
         start_date = datetime.combine(start_date, time.min)
 
-    # 시간대가 없는 datetime이면 timezone aware로 변환
     if is_naive(start_date):
         start_date = make_aware(start_date)
 
+    # 값 파싱
     try:
         period = int(re.sub(r"[^\d]", "", str(task_data.get("period", 1))) or "1")
         cycle = int(re.sub(r"[^\d]", "", str(task_data.get("cycle", 0))) or "0")
     except Exception as e:
         print(f"[Invalid period/cycle]: {task_data} => {e}")
         return
-    
+
     try:
         priority = int(task_data.get("priority", 3))
     except Exception as e:
         print(f"[Invalid priority]: {task_data} => {e}")
         priority = 3
 
-    # ✅ 중복 검사: 해당 연/월 중 기간 겹치는 작업들만 확인
+    # 새 작업 날짜 리스트
     end_date = start_date + timedelta(days=period - 1)
-    monthly_tasks = FieldTodo.objects.filter(
+    new_dates = [start_date.date() + timedelta(days=i) for i in range(period)]
+
+    # 한 달 전부터 생성된 모든 기존 작업을 가져옴 (날짜 겹침 가능성 있는 것)
+    candidates = FieldTodo.objects.filter(
         field=field,
-        start_date__year=start_date.year,
-        start_date__month=start_date.month
+        start_date__gte=start_date - timedelta(days=31)
     )
 
-    overlap_tasks = [
-        t for t in monthly_tasks
-        if t.start_date.date() <= end_date.date() and
-           (t.start_date.date() + timedelta(days=t.period or 1) - timedelta(days=1)) >= start_date.date()
-    ]
-    if is_duplicate_by_cosine(task_data["task_name"], task_data.get("task_content", ""),overlap_tasks):
-        print(f"[중복됨] {task_data['task_name']}")
+    # 날짜 겹치는 작업만 추출
+    overlap_tasks = []
+    for t in candidates:
+        task_dates = expand_task_dates(t)
+        if any(d in new_dates for d in task_dates):
+            overlap_tasks.append(t)
+
+    print(f"[중복 검사 대상 작업 수]: {len(overlap_tasks)}")
+
+    # 중복 검사 실행
+    is_dup = is_duplicate_by_cosine(
+        task_data.get("task_name", ""),
+        task_data.get("task_content", ""),
+        overlap_tasks
+    )
+
+    if is_dup:
+        print(f"[중복됨] task_name: {task_data.get('task_name')}")
         return
 
-    task = FieldTodo.objects.create(
+    # 저장
+    FieldTodo.objects.create(
         owner=user,
         field=field,
-        task_name=task_data["task_name"][:50],
-        task_content=task_data["task_content"],
-        priority=priority,
+        task_name=task_data.get("task_name"),
+        task_content=task_data.get("task_content"),
+        start_date=start_date,
         period=period,
         cycle=cycle,
-        is_pest=any(k in task_data["task_content"] for k in PEST_KEYWORDS),
-        start_date=start_date
+        priority=priority,
+        is_pest=task_data.get("is_pest", False)
     )
-    create_task_progress_entries(task)
+    print(f"[저장됨] task_name: {task_data.get('task_name')}")
+
 
 
 # -------- 1. 월간 키워드 생성 및 저장 -------- #
@@ -179,6 +210,7 @@ def generate_biweekly_tasks(user, field, weather, keywords, base_date):
 작업은 실제 농업 현장에서 수행되는 방식처럼 현실적이고 구체적으로 생성해야 합니다.
 
 [조건]
+- 작업은 절대로 겹쳐선 안됩니다.
 - 하루에 최대 2개 작업만 생성 가능
 - 각 작업은 아래 필드를 포함해야 합니다:
   - `task_name`: 작업 이름
