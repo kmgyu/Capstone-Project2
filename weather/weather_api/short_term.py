@@ -94,11 +94,12 @@ def get_ultra_short_forecast_all(lat, lon):
     return base_date, cleaned
 
 
-def get_or_create_hourly_weather(region_name, lat, lon):
+def get_or_create_hourly_weather(region_name, lat, lon, force=True):
     today = datetime.date.today()
-    queryset = HourlyWeather.objects.filter(region_name=region_name, date=today)
-    if queryset.exists():
-        return queryset
+    if not force: 
+        queryset = HourlyWeather.objects.filter(region_name=region_name, date=today)
+        if queryset.exists():
+            return queryset
 
     base_date, forecast_by_hour = get_ultra_short_forecast_all(lat, lon)
     if not forecast_by_hour:
