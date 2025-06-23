@@ -1,0 +1,31 @@
+from django.db import models
+
+class Weather(models.Model):
+    region_name = models.CharField(max_length=100)
+    date = models.DateField()
+    weather = models.CharField(max_length=50, default="정보없음")
+    temperature_avg = models.FloatField()
+    precipitation = models.FloatField()
+    
+    # ✅ 새로 추가
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('region_name', 'date')
+        db_table = 'mid_weather'
+
+class HourlyWeather(models.Model):
+    region_name = models.CharField(max_length=50)
+    date = models.DateField()
+    temperature = models.FloatField()
+    weather = models.CharField(max_length=30)
+    precipitation = models.FloatField(default=0.0)
+    hour = models.IntegerField()  
+    #created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('region_name', 'date', 'hour')
+        db_table = 'hourly_weather'
